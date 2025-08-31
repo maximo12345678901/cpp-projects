@@ -144,6 +144,59 @@ int main() {
         }
         window.clear(sf::Color::Black);
 
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
+            rules.clear();
+
+            while (true) {
+                std::string input;
+                std::cin >> input;
+
+                if (input == "break") {
+                    break;
+                }
+
+                if (input == "random") {
+                    int amountOfRules;
+                    std::cout << "how many? ";
+                    std::cin >> amountOfRules;
+
+                    std::uniform_int_distribution<> dist0_4(0, 4);
+                    std::uniform_int_distribution<> dist0_8(0, 8);
+                    for (int i = 0; i < amountOfRules; ++i) {
+                        // Generate a random digit
+                        int firstDigit  = dist0_4(gen);
+                        int secondDigit;
+                        while (true) {
+                            secondDigit = dist0_4(gen);
+                            if (secondDigit != firstDigit) {
+                                break;
+                            }
+                        }
+                        int thirdDigit  = dist0_8(gen);
+                        int fourthDigit = dist0_4(gen);
+
+                        Rule r{
+                            firstDigit,
+                            secondDigit,
+                            thirdDigit,
+                            fourthDigit
+                        };
+                        std::cout << r.currentState << r.nextState << r.requiredNeighbors << r.neighborType << "\n";
+                        rules.push_back(r);
+                    }
+                    break;
+                }
+                if (input.size() != 4) { std::cerr << "Error: input must be exactly 4 characters long.\n"; continue; }
+
+                Rule r{
+                    input[0] - '0', // current
+                    input[1] - '0', // next
+                    input[2] - '0', // neighbors
+                    input[3] - '0'  // neighbor type
+                };
+                rules.push_back(r);
+            }
+        }
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::Y)) {
             Draw(cellStates, hoveredPixel, 50, 0, width, height);
         }
