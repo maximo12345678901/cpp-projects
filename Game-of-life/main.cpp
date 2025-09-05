@@ -124,6 +124,7 @@ int main() {
     }
 
     sf::RenderWindow window(sf::VideoMode({width * cellSize, height * cellSize}), "Game of life (with a silly twist)");
+    window.setFramerateLimit(60);
 
     sf::VertexArray grid(sf::Quads, width * height * 4);
 
@@ -202,6 +203,7 @@ int main() {
         }
         else if(sf::Keyboard::isKeyPressed(sf::Keyboard::U)) {
             Draw(cellStates, hoveredPixel, 2, 1, width, height);
+            // cellStates[idx(hoveredPixel.x, hoveredPixel.y, width)] = 1;
         }
         else if(sf::Keyboard::isKeyPressed(sf::Keyboard::I)) {
             Draw(cellStates, hoveredPixel, 2, 2, width, height);
