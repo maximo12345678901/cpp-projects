@@ -2,18 +2,23 @@
 #include <iostream>
 #include <cmath>
 
+// multiply two complex numbers stored in sf::Vector2f
+inline sf::Vector2f complexMul(const sf::Vector2f &u, const sf::Vector2f &v) {
+    return sf::Vector2f(u.x * v.x - u.y * v.y, u.x * v.y + u.y * v.x);
+}
+
 
 int main() {
-    sf::Vector2i windowSize(1000, 1000);
+    sf::Vector2i windowSize(1500, 1500);
 
     sf::RenderWindow window(sf::VideoMode(windowSize.x, windowSize.y), "Mandelbrot set");
 
-    int maxIterations = 20;
+    int maxIterations = 100;
 
     double xMin = -2.0;
     double xMax = 2.0;
     double yMin = -2.0;
-    double yMax = 2.0;
+    double yMax = 2;
 
     sf::Image image;
     image.create(windowSize.x, windowSize.y, sf::Color::Black);
@@ -26,11 +31,13 @@ int main() {
             c.x = xMin + (xMax - xMin) * x / windowSize.x;
             c.y = yMin + (yMax - yMin) * y / windowSize.y;
 
-
-
             for (int i = 0; i < maxIterations; ++i) {
-                // z = sf::Vector2f(z.x*z.x*z.x*z.x - 6*z.x*z.x*z.y*z.y + z.y*z.y*z.y*z.y + c.x, 4*z.x*z.x*z.x*z.y - 4*z.x*z.y*z.y*z.y +c.y);
-                z = sf::Vector2f(z.x*z.x - z.y*z.y + c.x, 2*z.x*z.y + c.y);
+                sf::Vector2f power;
+                power = complexMul(z, complexMul(z, sf::Vector2f(z.x * 1, z.y * 1)));
+
+                z.x = power.x + c.x;
+                z.y = power.y + c.y;
+
                 if (i == maxIterations) {
                     image.setPixel(x, y, sf::Color::Black);
                     break;
