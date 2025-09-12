@@ -2,9 +2,14 @@
 #include <iostream>
 #include <cmath>
 
-// multiply two complex numbers stored in sf::Vector2f
-inline sf::Vector2f complexMul(const sf::Vector2f &u, const sf::Vector2f &v) {
-    return sf::Vector2f(u.x * v.x - u.y * v.y, u.x * v.y + u.y * v.x);
+inline sf::Vector2f complexPow(const sf::Vector2f &z, double power) {
+    double r = std::sqrt(z.x * z.x + z.y * z.y);
+    double theta = std::atan2(z.y, z.x);
+    double rp = std::pow(r, power);
+    return sf::Vector2f(
+        static_cast<float>(rp * std::cos(power * theta)),
+        static_cast<float>(rp * std::sin(power * theta))
+    );
 }
 
 
@@ -25,28 +30,26 @@ int main() {
 
     for (int x = 0; x < windowSize.x; x++) {
         for (int y = 0; y < windowSize.y; y++) {
-            sf::Vector2f c(0.0, 0.0);
+            sf::Vector2f c(-0.5, 0.5);
             sf::Vector2f z(0.0, 0.0);
 
-            c.x = xMin + (xMax - xMin) * x / windowSize.x;
-            c.y = yMin + (yMax - yMin) * y / windowSize.y;
+            z.x = xMin + (xMax - xMin) * x / windowSize.x;
+            z.y = yMin + (yMax - yMin) * y / windowSize.y;
+
+            double exponent = 2.5;
 
             for (int i = 0; i < maxIterations; ++i) {
-                sf::Vector2f power;
-                power = complexMul(z, complexMul(z, sf::Vector2f(z.x * 1, z.y * 1)));
+                sf::Vector2f power = complexPow(z, exponent);
 
                 z.x = power.x + c.x;
                 z.y = power.y + c.y;
 
-                if (i == maxIterations) {
-                    image.setPixel(x, y, sf::Color::Black);
-                    break;
-                }
-                if (z.x*z.x + z.y*z.y > 4) {
+                if (z.x * z.x + z.y * z.y > 4.0) {
                     float t = static_cast<float>(i) / maxIterations;
                     float colorValue = t * 255.0f;
                     sf::Uint8 gray = static_cast<sf::Uint8>(colorValue);
                     image.setPixel(x, y, sf::Color(gray, gray, gray));
+                    break;
                 }
             }
         }
