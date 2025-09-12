@@ -20,21 +20,21 @@ int main() {
 
     int maxIterations = 100;
 
-    double xMin = -2.0;
-    double xMax = 2.0;
-    double yMin = -2.0;
-    double yMax = 2;
+    double xMin = -1.5;
+    double xMax = -0.5;
+    double yMin = -0.5;
+    double yMax = 0.5;
 
     sf::Image image;
     image.create(windowSize.x, windowSize.y, sf::Color::Black);
 
     for (int x = 0; x < windowSize.x; x++) {
         for (int y = 0; y < windowSize.y; y++) {
-            sf::Vector2f c(-0.5, 0.5);
+            sf::Vector2f c(0.0, 0.0);
             sf::Vector2f z(0.0, 0.0);
 
-            z.x = xMin + (xMax - xMin) * x / windowSize.x;
-            z.y = yMin + (yMax - yMin) * y / windowSize.y;
+            c.x = xMin + (xMax - xMin) * x / windowSize.x;
+            c.y = yMin + (yMax - yMin) * y / windowSize.y;
 
             double exponent = 2.5;
 

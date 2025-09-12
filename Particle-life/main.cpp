@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 #include <random>
+#include <omp.h>
 
 class Particle {
     public:
@@ -32,8 +33,11 @@ void interact(Particle& particle1, const Particle& particle2, const std::vector<
 
     if (distSq > 5) { // avoid division by zero
         float dist = std::sqrt(distSq);
+        if (dist > maxDistance) {
+            return;
+        }
         sf::Vector2f dir = diff / dist;
-
+        
         float force = 0;
 
         if (dist < minDistance) {
@@ -46,16 +50,17 @@ void interact(Particle& particle1, const Particle& particle2, const std::vector<
             force = (-attraction/(maxDistance-minDistance))*(dist-maxDistance);
         }
 
+        force *= 2;
         // Apply force to particle1’s velocity
         particle1.velocity += dir * force;
     }
 }
 
 int main() {
-    int screenWidth = 1000;
-    int screenHeight = 1000;
+    int screenWidth = 2880;
+    int screenHeight = 1620 - 58;
 
-    int particleAmount = 50;
+    int particleAmount = 1000;
     std::vector<Particle> particles;
     
     int colorsAmount = 5;
@@ -101,6 +106,34 @@ int main() {
 
         window.clear(sf::Color(0, 0, 0));
 
+        #pragma omp parallel for collapse(1)
+        for (Particle &particle : particles) {
+
+            // Calculate physics
+            for (Particle &otherParticle : particles) {
+                if (particle.position.x < 0) {
+                    particle.position.x = screenWidth - 0.01f;
+                }
+                if (particle.position.x > screenWidth) {
+                    particle.position.x = 0.01f;
+                }
+
+                if (particle.position.y < 0) {
+                    particle.position.y = screenHeight - 0.01f;
+                }
+                if (particle.position.y > screenHeight) {
+                    particle.position.y = 0.01f;
+                }
+
+
+                if (&otherParticle == &particle) {
+                    continue;
+                }
+                interact(particle, otherParticle, attractionMatrix);
+            }
+            particle.velocity *= 0.8f;
+            particle.position += particle.velocity;
+        }
         for (Particle &particle : particles) {
             // Draw each particle
             sf::CircleShape particleShape(particle.radius);
@@ -126,31 +159,6 @@ int main() {
             }
 
             window.draw(particleShape);
-
-            // Calculate physics
-            for (Particle &otherParticle : particles) {
-                if (particle.position.x < 0) {
-                    particle.position.x = screenWidth - 0.01f;
-                }
-                if (particle.position.x > screenWidth) {
-                    particle.position.x = 0.01f;
-                }
-
-                if (particle.position.y < 0) {
-                    particle.position.y = screenHeight - 0.01f;
-                }
-                if (particle.position.y > screenHeight) {
-                    particle.position.y = 0.01f;
-                }
-
-
-                if (&otherParticle == &particle) {
-                    continue;
-                }
-                interact(particle, otherParticle, attractionMatrix);
-            }
-            particle.velocity *= 0.7f;
-            particle.position += particle.velocity;
         }
         window.display();
     }
