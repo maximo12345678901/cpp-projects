@@ -87,11 +87,17 @@ int main() {
 
     std::vector<std::vector<float>> attractionMatrix(colorsAmount, std::vector<float>(colorsAmount, 1.0f));
 
+    std::cout << "\n 1: red \n 2: yellow \n 3: green \n 4: cyan \n 5: blue \n";
     for (int i = 0; i < colorsAmount; ++i) {
+        std::cout << "\n";
         for (int j = 0; j < colorsAmount; ++j) {
-            attractionMatrix.at(i).at(j) = rand_attraction(gen);
+            float value = rand_attraction(gen);
+            attractionMatrix.at(i).at(j) = value;
+            std::cout << value << "  "; 
         }
     }
+
+    std::cout << "\n";
     for (int i = 0; i < particleAmount; ++i) {
         Particle particle;
         particle.position = sf::Vector2f(rand_width(gen), rand_height(gen));
@@ -108,6 +114,23 @@ int main() {
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed) {
                 window.close();
+            }
+            if (event.type == sf::Event::KeyPressed) {
+                if (event.key.code == sf::Keyboard::R) {
+                    std::cout << "\n 1: red \n 2: yellow \n 3: green \n 4: cyan \n 5: blue \n";
+                    for (int i = 0; i < colorsAmount; ++i) {
+                        std::cout << "\n";
+                        for (int j = 0; j < colorsAmount; ++j) {
+                            float value = rand_attraction(gen);
+                            attractionMatrix.at(i).at(j) = value;
+                            std::cout << value << "  "; 
+                        }
+                    }
+                    std::cout << "\n";
+                }
+                if (event.key.code == sf::Keyboard::Escape) {
+                    window.close();
+                }
             }
 
         }
