@@ -5,6 +5,7 @@
 #include <iostream>
 #include <random>
 #include <omp.h>
+#include <chrono>
 
 class Particle {
     public:
@@ -13,41 +14,45 @@ class Particle {
 
         int radius;
         int color;
+        bool nearEdges;
 
     Particle() {
         position = sf::Vector2f(0, 0);
         velocity = sf::Vector2f(0, 0);
 
         color = 0;
-        radius = 5;
+        radius = 3;
+        nearEdges = false;
     }
 };
 
-void interact(Particle& particle1, const Particle& particle2, const std::vector<std::vector<float>>& attractionMatrix, int maxDistance = 200, int minDistance = 20) {
+void interact(Particle& particle1, const Particle& particle2, const std::vector<std::vector<float>>& attractionMatrix, int maxDistance = 100, int minDistance = 20) {
 
     float attraction = attractionMatrix.at(particle1.color).at(particle2.color);
 
     // direction
     sf::Vector2f diff = particle2.position - particle1.position;
     float distSq = diff.x * diff.x + diff.y * diff.y;
+    float dist = std::sqrt(distSq);
+        if (dist > maxDistance) {
+        return;
+    }
 
     if (distSq > 5) { // avoid division by zero
-        float dist = std::sqrt(distSq);
-        if (dist > maxDistance) {
-            return;
-        }
         sf::Vector2f dir = diff / dist;
         
-        float force = 0;
+        float force;
+
+        float a = attraction/(maxDistance-minDistance);
 
         if (dist < minDistance) {
             force = dist/minDistance - 1;
         }
-        else if (dist < (minDistance + (maxDistance - minDistance) / 2)) {
-            force = (attraction/(maxDistance-minDistance))*(dist-minDistance);
+        else if (dist < maxDistance/2 + minDistance/2) {
+            force = a*dist - a*minDistance;
         }
-        else if (dist < maxDistance) {
-            force = (-attraction/(maxDistance-minDistance))*(dist-maxDistance);
+        else if (dist <= maxDistance) {
+            force = -a*dist + a*maxDistance;
         }
 
         force *= 2;
@@ -57,11 +62,14 @@ void interact(Particle& particle1, const Particle& particle2, const std::vector<
 }
 
 int main() {
-    int screenWidth = 2880;
-    int screenHeight = 1620 - 58;
 
-    int particleAmount = 1000;
+    int screenWidth = 2880;
+    int screenHeight = 1620;
+
+    int particleAmount = 2000;
     std::vector<Particle> particles;
+
+    int maxDistance = 100;
     
     int colorsAmount = 5;
 
@@ -92,7 +100,7 @@ int main() {
     }
 
     sf::RenderWindow window;
-    window.create(sf::VideoMode(screenWidth, screenHeight), "particle life wooooo");
+    window.create(sf::VideoMode(screenWidth, screenHeight), "particle life wooooo", sf::Style::Fullscreen);
     window.setFramerateLimit(60);
 
     while (window.isOpen()) {
@@ -106,34 +114,79 @@ int main() {
 
         window.clear(sf::Color(0, 0, 0));
 
+        // auto start = std::chrono::high_resolution_clock::now(); //    CLOCK START  
         #pragma omp parallel for collapse(1)
         for (Particle &particle : particles) {
 
-            // Calculate physics
-            for (Particle &otherParticle : particles) {
+            // Wrap particles around the screen            
+            particle.nearEdges = false;           
+            if (particle.position.x < maxDistance) {
+                particle.nearEdges = true;
                 if (particle.position.x < 0) {
                     particle.position.x = screenWidth - 0.01f;
                 }
+            }
+            if (particle.position.x > screenWidth - maxDistance) {
+                particle.nearEdges = true;
                 if (particle.position.x > screenWidth) {
                     particle.position.x = 0.01f;
                 }
+            }
 
+            if (particle.position.y < maxDistance) {
+                particle.nearEdges = true;
                 if (particle.position.y < 0) {
                     particle.position.y = screenHeight - 0.01f;
                 }
+            }
+            if (particle.position.y > screenHeight - maxDistance) {
+                particle.nearEdges = true;
                 if (particle.position.y > screenHeight) {
                     particle.position.y = 0.01f;
                 }
+            }
 
-
+            // Calculate physics
+            for (Particle &otherParticle : particles) {
+                // Calculate force
                 if (&otherParticle == &particle) {
                     continue;
                 }
                 interact(particle, otherParticle, attractionMatrix);
             }
+            // Make forces wrap around the edges
+            for (Particle otherParticleUp : particles) {
+                if (otherParticleUp.nearEdges) {
+                    otherParticleUp.position.y += screenHeight;
+                    interact(particle, otherParticleUp, attractionMatrix, maxDistance);
+                }
+            }
+            for (Particle otherParticleDown : particles) {
+                if (otherParticleDown.nearEdges) {
+                    otherParticleDown.position.y -= screenHeight;
+                    interact(particle, otherParticleDown, attractionMatrix, maxDistance);
+                }
+            }
+            for (Particle otherParticleLeft : particles) {
+                if (otherParticleLeft.nearEdges) {
+                    otherParticleLeft.position.x -= screenWidth;
+                    interact(particle, otherParticleLeft, attractionMatrix, maxDistance);
+                }
+            }
+            for (Particle otherParticleRight : particles) {
+                if (otherParticleRight.nearEdges) {
+                    otherParticleRight.position.x += screenWidth;
+                    interact(particle, otherParticleRight, attractionMatrix, maxDistance);
+                } 
+            }
             particle.velocity *= 0.8f;
-            particle.position += particle.velocity;
+            particle.position += particle.velocity * 1.0f;
         }
+        
+        // auto end = std::chrono::high_resolution_clock::now();   //      CLOCK END
+        // std::chrono::duration<double> elapsed = end - start;
+        // std::cout << "Code took " << elapsed.count() << "s\n";
+
         for (Particle &particle : particles) {
             // Draw each particle
             sf::CircleShape particleShape(particle.radius);
@@ -161,6 +214,7 @@ int main() {
             window.draw(particleShape);
         }
         window.display();
+
     }
 
     return 0;
