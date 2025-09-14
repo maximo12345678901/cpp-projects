@@ -14,7 +14,10 @@ class Particle {
 
         int radius;
         int color;
-        bool nearEdges;
+        bool nearLeftEdge;
+        bool nearRightEdge;
+        bool nearTopEdge;
+        bool nearBottomEdge;
 
     Particle() {
         position = sf::Vector2f(0, 0);
@@ -22,7 +25,10 @@ class Particle {
 
         color = 0;
         radius = 3;
-        nearEdges = false;
+        nearLeftEdge = false;
+        nearRightEdge = false;
+        nearTopEdge = false;
+        nearBottomEdge = false;
     }
 };
 
@@ -142,28 +148,32 @@ int main() {
         for (Particle &particle : particles) {
 
             // Wrap particles around the screen            
-            particle.nearEdges = false;           
+            particle.nearLeftEdge = false;
+            particle.nearRightEdge = false;
+            particle.nearTopEdge = false;
+            particle.nearBottomEdge = false;
+
             if (particle.position.x < maxDistance) {
-                particle.nearEdges = true;
+                particle.nearLeftEdge = true;
                 if (particle.position.x < 0) {
                     particle.position.x = screenWidth - 0.01f;
                 }
             }
             if (particle.position.x > screenWidth - maxDistance) {
-                particle.nearEdges = true;
+                particle.nearRightEdge = true;
                 if (particle.position.x > screenWidth) {
                     particle.position.x = 0.01f;
                 }
             }
 
             if (particle.position.y < maxDistance) {
-                particle.nearEdges = true;
+                particle.nearTopEdge = true;
                 if (particle.position.y < 0) {
                     particle.position.y = screenHeight - 0.01f;
                 }
             }
             if (particle.position.y > screenHeight - maxDistance) {
-                particle.nearEdges = true;
+                particle.nearBottomEdge = true;
                 if (particle.position.y > screenHeight) {
                     particle.position.y = 0.01f;
                 }
@@ -179,25 +189,25 @@ int main() {
             }
             // Make forces wrap around the edges
             for (Particle otherParticleUp : particles) {
-                if (otherParticleUp.nearEdges) {
-                    otherParticleUp.position.y += screenHeight;
+                if (otherParticleUp.nearBottomEdge) {
+                    otherParticleUp.position.y -= screenHeight;
                     interact(particle, otherParticleUp, attractionMatrix, maxDistance);
                 }
             }
             for (Particle otherParticleDown : particles) {
-                if (otherParticleDown.nearEdges) {
-                    otherParticleDown.position.y -= screenHeight;
+                if (otherParticleDown.nearTopEdge) {
+                    otherParticleDown.position.y += screenHeight;
                     interact(particle, otherParticleDown, attractionMatrix, maxDistance);
                 }
             }
             for (Particle otherParticleLeft : particles) {
-                if (otherParticleLeft.nearEdges) {
+                if (otherParticleLeft.nearRightEdge) {
                     otherParticleLeft.position.x -= screenWidth;
                     interact(particle, otherParticleLeft, attractionMatrix, maxDistance);
                 }
             }
             for (Particle otherParticleRight : particles) {
-                if (otherParticleRight.nearEdges) {
+                if (otherParticleRight.nearLeftEdge) {
                     otherParticleRight.position.x += screenWidth;
                     interact(particle, otherParticleRight, attractionMatrix, maxDistance);
                 } 
