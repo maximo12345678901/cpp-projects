@@ -75,7 +75,7 @@ int main() {
     int particleAmount = 2000;
     std::vector<Particle> particles;
 
-    int maxDistance = 100;
+    int maxDistance = 200;
     
     int colorsAmount = 5;
 
