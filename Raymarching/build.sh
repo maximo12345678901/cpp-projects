@@ -2,14 +2,14 @@
 
 echo "Building app..."
 
-g++ main.cpp -o raytracing-engine \
+g++ main.cpp -o raymarching \
   -IC:/SFML-install/include \
   -LC:/SFML-install/lib \
-  -lsfml-graphics -lsfml-window -lsfml-system
+  -lsfml-graphics -lsfml-window -lsfml-system -fopenmp
 
 if [ $? -eq 0 ]; then
   echo "Build successful"
-  ./raytracing-engine
+  ./raymarching
 else
   echo "Build failed"
 fi

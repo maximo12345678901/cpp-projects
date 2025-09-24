@@ -72,10 +72,10 @@ int main() {
     int screenWidth = 2880;
     int screenHeight = 1620;
 
-    int particleAmount = 2000;
+    int particleAmount = 1500;
     std::vector<Particle> particles;
 
-    int maxDistance = 200;
+    int maxDistance = 150;
     
     int colorsAmount = 5;
 
