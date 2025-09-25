@@ -50,6 +50,7 @@ int main() {
     screenQuad.setPosition(0, 0);
 
     Camera cam;
+    cam.position.y = 3400000000.0;
     sf::Clock clock;
 
     sf::Vector2i center(WIDTH / 2, HEIGHT / 2);

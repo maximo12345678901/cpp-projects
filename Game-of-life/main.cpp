@@ -42,7 +42,7 @@ int main() {
     sf::RenderWindow window(
         sf::VideoMode(width * cellSize, height * cellSize),
         "GPU Cellular Automaton",
-        sf::Style::Default,
+        sf::Style::Fullscreen,
         sf::ContextSettings(24, 8, 0, 3, 3)
     );
     window.setFramerateLimit(60);

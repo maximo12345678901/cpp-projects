@@ -16,11 +16,12 @@ float sdSphere(vec3 p, float r) {
     return length(p) - r;
 }
 
-float sdBox(vec3 p, vec3 b) {
-    vec3 q = abs(p) - b;
-    return length(max(q,0.0)) + max(min(q.x,min(q.y,q.z)),0.0);
-}
 
+float sdBox( vec3 p, vec3 b )
+{
+  vec3 q = abs(p) - b;
+  return length(max(q,0.0)) + min(max(q.x* q.y,min(q.y*q.z,q.z*q.x)),0.0);
+}
 float sdRoundBox( vec3 p, vec3 b, float r )
 {
   vec3 q = abs(p) - b + r;
@@ -36,6 +37,7 @@ float sdCustom(vec3 p) {
 
 float sdBoxFrame( vec3 p, vec3 b, float e )
 {
+    p = repeat(p, 10.0);
     p = abs(p)-b;
     vec3 q = abs(p+e)-e;
     return min(min(
@@ -44,9 +46,17 @@ float sdBoxFrame( vec3 p, vec3 b, float e )
     length(max(vec3(q.x,q.y,p.z),0.0))+min(max(q.x,max(q.y,p.z)),0.0));
 }
 
+
+float sdTorus( vec3 p, vec2 t )
+{
+  vec2 q = vec2(length(p.xz)-t.x,p.y);
+  return length(q)-t.y;
+}
+
 float map(vec3 p) {
-    float box = sdBox(p, vec3(50.0));
-    return box;
+    float box = sdBox(p, vec3(5.0));
+    float sphere = sdSphere(p, 1.0);
+    return min(box, sphere);
 }
 
 mat3 getCamera(float yaw, float pitch) {
@@ -70,22 +80,21 @@ void main() {
     vec3 ro = camPos;
     vec3 rd = normalize(camMat * vec3(uv, -1.0));
 
+    float minT = 10000.0;
     float t = 0.0;
-    for (int i=0; i<200; i++) {
+    for (int i=0; i<500; i++) {
         vec3 pos = ro + rd*t;
         float d = map(pos);
+        float distance = length(pos - ro);
+        if (minT > d) {
+            minT = d;
+        }
         if (d < 0.001) {
-            float distance = length(pos - ro);
-            if (distance > 400) {
-                FragColor = vec4(0.0);
-                break;
-            }
-            else {
-                FragColor = vec4(1 -(distance / 400.0));
-            }
+            FragColor = vec4(1 - distance / 10000);
             break;
         };
         if (t > 10000.0) {
+            FragColor = vec4(0.0);
             break;
         };
         t += d;
