@@ -1,15 +1,6 @@
-#!/usr/bin/env bash
-
-echo "Building app..."
-
-g++ main.cpp -o raymarching \
-  -IC:/SFML-install/include \
-  -LC:/SFML-install/lib \
-  -lsfml-graphics -lsfml-window -lsfml-system -fopenmp
-
-if [ $? -eq 0 ]; then
-  echo "Build successful"
-  ./raymarching
-else
-  echo "Build failed"
-fi
+g++ main.cpp -o myapp \
+    -I/usr/include \
+    -I/usr/include/SFML \
+    -L/usr/lib \
+    -L/usr/lib/x86_64-linux-gnu \
+    -lsfml-graphics -lsfml-window -lsfml-system

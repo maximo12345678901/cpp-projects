@@ -1,4 +1,6 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/Window.hpp>
+#include <SFML/System.hpp>
 #include <iostream>
 #include <cmath>
 
@@ -24,19 +26,14 @@ sf::Vector3f getRight(const Camera& cam) {
     return sf::Vector3f(f.z, 0.f, -f.x);
 }
 
-
-
 int main() {
-
-    float v = 10;
     const unsigned WIDTH = 1600;
     const unsigned HEIGHT = 900;
 
     bool controlling = true;
 
-    sf::RenderWindow window(sf::VideoMode(WIDTH, HEIGHT), "raymarching yay");
-    window.setPosition(sf::Vector2i(10, 10));
-    // window.setFramerateLimit(60);
+    sf::RenderWindow window(sf::VideoMode({WIDTH, HEIGHT}), "Raymarching with SFML 3.0");
+    window.setPosition({10, 10});
     window.setMouseCursorGrabbed(true);
     window.setMouseCursorVisible(false);
 
@@ -50,7 +47,7 @@ int main() {
     screenQuad.setPosition(0, 0);
 
     Camera cam;
-    cam.position.y = 3400000000.0;
+    cam.position.y = 3400000000.0f;
     sf::Clock clock;
 
     sf::Vector2i center(WIDTH / 2, HEIGHT / 2);
@@ -74,7 +71,7 @@ int main() {
 
         sf::Vector2i mouse = sf::Mouse::getPosition(window);
         sf::Vector2i delta = mouse - center;
-        
+
         if (controlling) {
             sf::Mouse::setPosition(center, window);
         }
@@ -82,10 +79,6 @@ int main() {
         cam.yaw += delta.x * cam.sensitivity;
         cam.pitch -= delta.y * cam.sensitivity;
         cam.pitch = std::clamp(cam.pitch, -89.f, 89.f);
-
-        // v += 5 * dt;
-        // cam.position.y += v;
-
 
         sf::Vector3f forward = getForward(cam);
         sf::Vector3f right = getRight(cam);
