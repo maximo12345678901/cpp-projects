@@ -18,12 +18,18 @@ int main() {
 
     sf::RenderWindow window(sf::VideoMode(windowSize.x, windowSize.y), "Mandelbrot set");
 
-    int maxIterations = 100;
+    int maxIterations = 500;
 
-    double xMin = -1.5;
-    double xMax = -0.5;
-    double yMin = -0.5;
-    double yMax = 0.5;
+    // double xMin = -0.752407411;
+    // double xMax = 0.1152407411;
+    // double yMin = 0.8568162204352258;
+    // double yMax = 1.1168162204352258;
+
+    
+    double xMin = -2;
+    double xMax = 1;
+    double yMin = -1.5;
+    double yMax = 1.5;
 
     sf::Image image;
     image.create(windowSize.x, windowSize.y, sf::Color::Black);
@@ -36,7 +42,7 @@ int main() {
             c.x = xMin + (xMax - xMin) * x / windowSize.x;
             c.y = yMin + (yMax - yMin) * y / windowSize.y;
 
-            double exponent = 2.5;
+            double exponent = 2.0;
 
             for (int i = 0; i < maxIterations; ++i) {
                 sf::Vector2f power = complexPow(z, exponent);

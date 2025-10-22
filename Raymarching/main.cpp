@@ -1,9 +1,8 @@
 #include <SFML/Graphics.hpp>
-#include <SFML/Window.hpp>
-#include <SFML/System.hpp>
 #include <iostream>
 #include <cmath>
 
+// Camera structure
 struct Camera {
     sf::Vector3f position {0.f, 0.f, 5.f};
     float yaw = -90.f;
@@ -12,6 +11,7 @@ struct Camera {
     float sensitivity = 0.1f;
 };
 
+// Get the forward direction vector based on camera orientation
 sf::Vector3f getForward(const Camera& cam) {
     float cy = std::cos(cam.yaw * 3.14159f / 180.f);
     float sy = std::sin(cam.yaw * 3.14159f / 180.f);
@@ -21,6 +21,7 @@ sf::Vector3f getForward(const Camera& cam) {
     return sf::Vector3f(cy * cp, sp, sy * cp);
 }
 
+// Get the right direction vector based on camera orientation
 sf::Vector3f getRight(const Camera& cam) {
     sf::Vector3f f = getForward(cam);
     return sf::Vector3f(f.z, 0.f, -f.x);
@@ -29,37 +30,40 @@ sf::Vector3f getRight(const Camera& cam) {
 int main() {
     const unsigned WIDTH = 1600;
     const unsigned HEIGHT = 900;
-
     bool controlling = true;
 
-    sf::RenderWindow window(sf::VideoMode({WIDTH, HEIGHT}), "Raymarching with SFML 3.0");
-    window.setPosition({10, 10});
+    // Create the window
+    sf::RenderWindow window(sf::VideoMode(WIDTH, HEIGHT), "Raymarching Demo");
+    window.setPosition(sf::Vector2i(10, 10));
     window.setMouseCursorGrabbed(true);
     window.setMouseCursorVisible(false);
 
+    // Load shader
     sf::Shader shader;
     if (!shader.loadFromFile("raymarch.frag", sf::Shader::Fragment)) {
         std::cerr << "Failed to load shader\n";
         return -1;
     }
 
+    // Screen quad to render shader on
     sf::RectangleShape screenQuad(sf::Vector2f(WIDTH, HEIGHT));
     screenQuad.setPosition(0, 0);
 
+    // Camera setup
     Camera cam;
-    cam.position.y = 3400000000.0f;
     sf::Clock clock;
-
     sf::Vector2i center(WIDTH / 2, HEIGHT / 2);
     sf::Mouse::setPosition(center, window);
 
     while (window.isOpen()) {
         float dt = clock.restart().asSeconds();
 
+        // Event handling
         sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed)
                 window.close();
+
             if (event.type == sf::Event::KeyPressed) {
                 if (event.key.code == sf::Keyboard::Escape) {
                     window.setMouseCursorGrabbed(false);
@@ -69,17 +73,18 @@ int main() {
             }
         }
 
+        // Mouse movement
         sf::Vector2i mouse = sf::Mouse::getPosition(window);
         sf::Vector2i delta = mouse - center;
 
-        if (controlling) {
+        if (controlling)
             sf::Mouse::setPosition(center, window);
-        }
 
         cam.yaw += delta.x * cam.sensitivity;
         cam.pitch -= delta.y * cam.sensitivity;
         cam.pitch = std::clamp(cam.pitch, -89.f, 89.f);
 
+        // Camera movement
         sf::Vector3f forward = getForward(cam);
         sf::Vector3f right = getRight(cam);
 
@@ -96,11 +101,13 @@ int main() {
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::C))
             cam.position.y += cam.speed * dt;
 
+        // Update shader uniforms
         shader.setUniform("iResolution", sf::Vector2f(WIDTH, HEIGHT));
         shader.setUniform("camPos", cam.position);
         shader.setUniform("camYaw", cam.yaw);
         shader.setUniform("camPitch", cam.pitch);
 
+        // Render
         window.clear();
         window.draw(screenQuad, &shader);
         window.display();

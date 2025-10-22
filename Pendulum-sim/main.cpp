@@ -241,7 +241,7 @@ class Pendulum {
 int main() {
     bool running = true;
     bool doGenerateMap;
-    std::cout << "\nDo you want to simulate phase space? (y/n)\n";
+    std::cout << "\nstate space? (y/N)\n";
     std::string input;
     std::cin >> input;
     if (input == "y" || input == "Y") {
@@ -274,7 +274,7 @@ int main() {
     unsigned int originalColorMapWidth  = originalColorMap.getSize().x;
     unsigned int originalColorMapHeight = originalColorMap.getSize().y;
 
-    int resolution = 50;
+    int resolution = 200;
     sf::Image currentColorMap;
     currentColorMap.create(originalColorMapWidth, originalColorMapHeight);
 
@@ -330,15 +330,16 @@ int main() {
     double dt = 0.002;
 
     Pendulum pendulum;
+    
     std::vector<sf::CircleShape> graphTrail;
 
     if (!doGenerateMap) {
 
 
-        std::cout << "\nEnter the starting angle for the first rod: ";
+        std::cout << "\nth1: ";
         double firstAngle;
         std::cin >> firstAngle;
-        std::cout << "\nEnter the starting angle for the second rod: ";
+        std::cout << "\nth2: ";
         double secondAngle;
         std::cin >> secondAngle;
 
@@ -346,7 +347,6 @@ int main() {
         // pendulum.th2 = ((float) 720 / (resolution - 1)) * 2 * M_PI - M_PI;
         pendulum.th1 = firstAngle;
         pendulum.th2 = secondAngle;
-    }
     
     // loop
     while (running) {
@@ -376,7 +376,7 @@ int main() {
 
 
             // // Update graph window
-            float scale = 100; // radians per pixel
+            float scale = 200; // radians per pixel
             int pointSize = 2;
             
             graphWindow.clear(sf::Color(0, 0, 0));
@@ -385,26 +385,29 @@ int main() {
             graphPoint.setFillColor(sf::Color(255, 255, 255));
             graphPoint.setOrigin(pointSize / 2, pointSize / 2);
 
-            graphPoint.setPosition(pendulum.th1 * scale + graphWindow.getSize().x / 2, pendulum.th2 * scale + graphWindow.getSize().y / 2);
+            graphPoint.setPosition(pendulum.th1 * scale + 500, pendulum.th2 * scale + 500);
 
             graphTrail.push_back(graphPoint);
 
             // Limit the length of the graph
-            if (graphTrail.size() > 5000) {
+            if (graphTrail.size() > 2500) {
                 graphTrail.erase(graphTrail.begin());
             }
 
             // Center all points so that the most recent one is in the middle
             for (sf::CircleShape point : graphTrail) {
-                sf::Vector2f newPosition;
-                newPosition.x = point.getPosition().x - graphTrail.back().getPosition().x + graphWindow.getSize().x / 2;
-                newPosition.y = point.getPosition().y - graphTrail.back().getPosition().y + graphWindow.getSize().y / 2;
-                point.setPosition(newPosition);
+                // sf::Vector2f newPosition;
+                // newPosition.x = point.getPosition().x - graphTrail.back().getPosition().x + graphWindow.getSize().x / 2;
+                // newPosition.y = point.getPosition().y - graphTrail.back().getPosition().y + graphWindow.getSize().y / 2;
+                // point.setPosition(newPosition);
                 graphWindow.draw(point);
             }
-
+            graphPoint.setRadius(pointSize * 4);
+            graphPoint.setOrigin(pointSize * 4 / 2, pointSize * 4 / 2);
+            graphWindow.draw(graphPoint);
             pendulum.UpdatePendulumRK4(G, dt);
             pendulum.DrawPendulum(simulationWindow);
+
         }
 
         if (doGenerateMap) {
@@ -454,17 +457,19 @@ int main() {
         if (doGenerateMap) {
             mapWindow.draw(sprite);
             mapWindow.display();
+            
+            // FPS calculation
+            float elapsed = clock.getElapsedTime().asSeconds();
+            if (elapsed >= 1.0f) {
+                float fps = fpsCounter / elapsed; 
+                std::cout << "FPS: " << fps << std::endl;
+
+                fpsCounter = 0;
+                clock.restart();
+            }
         }
 
-        // FPS calculation
-        float elapsed = clock.getElapsedTime().asSeconds();
-        if (elapsed >= 1.0f) {
-            float fps = fpsCounter / elapsed; 
-            std::cout << "FPS: " << fps << std::endl;
 
-            fpsCounter = 0;
-            clock.restart();
-        }
     }
 }
-
+}
