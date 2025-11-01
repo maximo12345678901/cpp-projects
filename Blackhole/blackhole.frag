@@ -11,13 +11,45 @@ uniform int rayIterations;
 uniform float screenWidth;
 uniform float screenHeight;
 uniform float fov; // in degrees
+uniform float accretionDiskRadius;
 
 out vec4 fragColor;
+vec3 repeat(vec3 p, float period) {
+    return mod(p + 0.5 * period, period) - 0.5 * period;
+}
+
+float sdSphere(vec3 p, float r) {
+    p = repeat(p, 30);
+    return length(p) - r;
+}
+
+float sdBox( vec3 p, vec3 b )
+{
+  vec3 q = abs(p) - b;
+  return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
+}
+
+float sdBoxFrame( vec3 p, vec3 b, float e )
+{
+    p = repeat(p, 30);
+    p = abs(p  )-b;
+    vec3 q = abs(p+e)-e;
+    return min(min(
+    length(max(vec3(p.x,q.y,q.z),0.0))+min(max(p.x,max(q.y,q.z)),0.0),
+    length(max(vec3(q.x,p.y,q.z),0.0))+min(max(q.x,max(p.y,q.z)),0.0)),
+    length(max(vec3(q.x,q.y,p.z),0.0))+min(max(q.x,max(q.y,p.z)),0.0));
+}
 
 void main() {
     // Normalized device coordinates [-1, 1]
     vec2 uv = (gl_FragCoord.xy / vec2(screenWidth, screenHeight)) * 2.0 - 1.0;
     uv.x *= screenWidth / screenHeight; // preserve aspect ratio
+
+    float cursorSize = 0.01;
+    if (uv.x < cursorSize && uv.x > -cursorSize && uv.y < cursorSize && uv.y > -cursorSize) {
+        fragColor = vec4(1.0);
+        return;
+    }
 
     // Convert FOV to radians
     float fovRad = radians(fov);
@@ -47,21 +79,22 @@ void main() {
         vec3 dirToBH = blackholePos - rayPos;
         float dist = length(dirToBH);
 
-        vec3 spherePos = vec3(0.0, 2.0, 5.0);
-        vec3 dirToSphere = spherePos - rayPos;
-        float distToSphere = length(dirToSphere);
-
-        if (dist < blackholeRadius) {
+        if (dist < blackholeRadius  && dot(normalize(rayDir), normalize(dirToBH)) > 0.0) {
             fragColor = vec4(0.0, 0.0, 0.0, 1.0);
             return;
         }
 
-        if (distToSphere < 2.0) {
-            fragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        if (sdSphere(rayPos, 2.0) < 0.0) {
+            fragColor = vec4(1 - (rayDir * 0.5 + 0.5), 1.0);
             return;
         }
 
-        if (abs(rayPos.y - blackholePos.y) < 0.15 && dist > blackholeRadius && dist < 5.0) {
+//        if (sdBoxFrame(rayPos, vec3(2.0), 0.1) < 0) {
+//            fragColor = vec4(1 - (rayDir * 0.5 + 0.5), 1.0);
+//            return;
+//        }
+
+        if (abs(rayPos.y - blackholePos.y) < 0.15 && dist > blackholeRadius && dist < accretionDiskRadius) {
             fragColor = vec4(rayDir * 0.5 + 0.5, 1.0);
             return;
         }

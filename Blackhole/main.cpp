@@ -12,7 +12,7 @@ int main() {
     float fov = 90.0f;
 
     // Create window
-    sf::RenderWindow window(sf::VideoMode(width * displayScale, height * displayScale), "GPU Black Hole");
+    sf::RenderWindow window(sf::VideoMode(width * displayScale, height * displayScale), "blac hol");
     window.setFramerateLimit(60);
 
     // Camera
@@ -24,7 +24,8 @@ int main() {
     float blackholeRadius = 0.1f;
     float blackholeMass = 0.05f;
     float rayStepSize = 0.1f;
-    int rayIterations = 500;
+    int rayIterations = 2000;
+    float accretionDiskRadius = 3.0;
 
     // Mouse
     sf::Vector2i lastMousePos(width * displayScale / 2, height * displayScale / 2);
@@ -85,7 +86,12 @@ int main() {
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::K)) blackholeRadius += 0.01;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::J)) blackholeRadius -= 0.01;
 
+        
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::I)) accretionDiskRadius += 0.1;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::U)) accretionDiskRadius -= 0.1;
+
         // --- Shader uniforms ---
+        
         shader.setUniform("cameraPos", sf::Glsl::Vec3(cameraPos.x, cameraPos.y, cameraPos.z));
         shader.setUniform("yaw", cameraDirPolar.z);
         shader.setUniform("pitch", cameraDirPolar.y);
@@ -97,6 +103,7 @@ int main() {
         shader.setUniform("screenWidth", static_cast<float>(width));
         shader.setUniform("screenHeight", static_cast<float>(height));
         shader.setUniform("fov", fov);
+        shader.setUniform("accretionDiskRadius", accretionDiskRadius);
 
         // --- Render to texture ---
         renderTexture.clear();
@@ -110,8 +117,11 @@ int main() {
         window.clear();
         window.draw(sprite);
         window.display();
-        std::cout << "\033[2J";
-        std::cout << blackholeMass;
+        std::cout << "\033[2J" << "\n";
+        std::cout << "Blackhole mass: " << blackholeMass << "\n";
+        std::cout << "Blackhole radius: " << blackholeRadius << "\n";
+        std::cout << "Camera rotation (pitch, yaw): (" << cameraDirPolar.y << ", " << cameraDirPolar.z << ")" << "\n";
+        std::cout << "Camera position (x, y, z): (" << cameraPos.x << ", " << cameraPos.y << ", " << cameraPos.z << ")" << "\n";
     }
 
     return 0;

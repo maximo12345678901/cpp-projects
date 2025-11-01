@@ -439,11 +439,11 @@ int main() {
             }
             texture.update(currentColorMap);
 
-            // std::ostringstream filenameStream;
-            // filenameStream << "frames/frame_" << std::setw(4) << std::setfill('0') << frameCount << ".png";
-            // std::string filename = filenameStream.str();
+            std::ostringstream filenameStream;
+            filenameStream << "frames/frame_" << std::setw(4) << std::setfill('0') << frameCount << ".png";
+            std::string filename = filenameStream.str();
 
-            // currentColorMap.saveToFile(filename);
+            currentColorMap.saveToFile(filename);
         }
 
         frameCount++;

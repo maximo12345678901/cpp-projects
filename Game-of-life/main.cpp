@@ -8,12 +8,10 @@
 #include <random>
 #include <omp.h>
 
-// Utility: flatten 2D indices into 1D
 inline int idx(int x, int y, int w) {
     return y * w + x;
 }
 
-// Utility: set the quad color for a grid cell
 inline void setCellColor(sf::VertexArray& va, int x, int y, int width, int cellSize, sf::Color color) {
     int i = (y * width + x) * 4;
     sf::Vector2f pos(x * cellSize, y * cellSize);
@@ -29,7 +27,6 @@ inline void setCellColor(sf::VertexArray& va, int x, int y, int width, int cellS
     va[i + 3].color = color;
 }
 
-// Paint a region of cells with a given state
 void Draw(std::vector<int>& cells, const sf::Vector2i& pos, int radius,
           int state, int width, int height) {
     const int xmin = std::max(0, pos.x - radius);
@@ -42,7 +39,6 @@ void Draw(std::vector<int>& cells, const sf::Vector2i& pos, int radius,
             cells[idx(x, y, width)] = state;
 }
 
-// Rule definition
 struct Rule {
     int currentState;
     int nextState;
@@ -50,7 +46,6 @@ struct Rule {
     int neighborType;
 };
 
-// Rule input helper (with random support)
 void readRules(std::vector<Rule>& rules, std::mt19937& gen) {
     while (true) {
         std::string input;
@@ -106,13 +101,11 @@ void readRules(std::vector<Rule>& rules, std::mt19937& gen) {
 int main() {
     int width, height, cellSize;
 
-    // RNG setup
     std::random_device rd;
     std::mt19937 gen(rd());
 
     std::vector<Rule> rules;
 
-    // Input parameters
     std::cout << "Enter the width of the map: ";
     std::cin >> width;
 
@@ -122,7 +115,6 @@ int main() {
     std::cout << "Enter the pixel size of each cell: ";
     std::cin >> cellSize;
 
-    // Initial states
     std::vector<int> cellStates(width * height, 0);
     std::vector<int> newStates(width * height, 0);
 
@@ -135,10 +127,9 @@ int main() {
 
     readRules(rules, gen);
 
-    // Setup window and grid
+    
     sf::RenderWindow window(
-        sf::VideoMode({width * cellSize, height * cellSize}),
-        "Game of Life (Twist)");
+        sf::VideoMode({width * cellSize, height * cellSize}), "game of life (with a silly twist)");
     window.setFramerateLimit(60);
 
     sf::VertexArray grid(sf::Quads, width * height * 4);
@@ -161,7 +152,6 @@ int main() {
 
         window.clear(sf::Color::Black);
 
-        // Hotkeys for editing
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
             rules.clear();
             readRules(rules, gen);
@@ -178,13 +168,11 @@ int main() {
         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::P))
             Draw(cellStates, hoveredPixel, 2, 4, width, height);
 
-        // Simulation step
         #pragma omp parallel for collapse(2)
         for (int x = 0; x < width; ++x) {
             for (int y = 0; y < height; ++y) {
                 std::array<int, 5> neighborCounts{}; // states 0–4
 
-                // Count neighbors
                 for (int i = -1; i <= 1; ++i) {
                     for (int j = -1; j <= 1; ++j) {
                         if (i == 0 && j == 0) continue;
