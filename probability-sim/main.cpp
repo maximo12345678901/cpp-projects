@@ -39,7 +39,7 @@ int main() {
 
     int unit2pixel = 400;
     int slices = 1000;
-    float pointDensity = 500.0f;
+    float pointDensity = 50.0f;
 
     float sliceWidth =  1.0f / slices;
 
@@ -119,12 +119,12 @@ int main() {
         }
 
         // Draw the transformation function
-        // for (sf::Vector2f point : graphPoints) {
-        //     sf::CircleShape graphicalPoint(1);
-        //     graphicalPoint.setPosition(sf::Vector2f(point.y * unit2pixel, point.x * -unit2pixel + height));
-        //     graphicalPoint.setFillColor(sf::Color(0, 255, 0));
-        //     window.draw(graphicalPoint);
-        // }
+        for (sf::Vector2f point : graphPoints) {
+            sf::CircleShape graphicalPoint(1);
+            graphicalPoint.setPosition(sf::Vector2f(point.y * unit2pixel, point.x * -unit2pixel + height));
+            graphicalPoint.setFillColor(sf::Color(0, 255, 0));
+            window.draw(graphicalPoint);
+        }
 
         // Draw the PDF as a continuous line
         sf::VertexArray pdfLine(sf::LineStrip, PDFpoints.size());
