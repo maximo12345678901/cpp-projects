@@ -127,7 +127,7 @@ int main() {
         window.display();
         std::cout << "\033[2J" << "\n";
         std::cout << "Blackhole mass: " << blackholeMass << "\n";
-        std::cout << "Blackhole radius: " << blackholeRadius << "\n";
+        std::cout << "Accretion disk radius: " << accretionDiskRadius << "\n";
         std::cout << "Camera rotation (pitch, yaw): (" << cameraDirPolar.y << ", " << cameraDirPolar.z << ")" << "\n";
         std::cout << "Camera position (x, y, z): (" << cameraPos.x << ", " << cameraPos.y << ", " << cameraPos.z << ")" << "\n";
         std::cout << "Camera movement speed: " << moveSpeed << "\n";
