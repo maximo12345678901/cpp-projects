@@ -5,15 +5,16 @@
 
 int main() {
     // Base resolution
-    int width = 400;
-    int height = 300;
-    int displayScale = 4;
+    int width = 800;
+    int height = 600;
+    int displayScale = 2;
 
     float fov = 90.0f;
 
     // Create window
     sf::RenderWindow window(sf::VideoMode(width * displayScale, height * displayScale), "blac hol");
-    window.setFramerateLimit(60);
+    window.setFramerateLimit(40);
+    window.setPosition(sf::Vector2i(800, 100));
 
     // Camera
     sf::Vector3f cameraPos(0.0f, 0.0f, 0.0f);
@@ -22,9 +23,9 @@ int main() {
     // Black hole
     sf::Vector3f blackholePos(0.0f, -0.2f, 10.0f);
     float blackholeRadius = 0.1f;
-    float blackholeMass = 0.05f;
-    float rayStepSize = 0.1f;
-    int rayIterations = 2000;
+    float blackholeMass = 0.0f;
+    float rayStepSize = 0.01f;
+    int rayIterations = 500;
     float accretionDiskRadius = 3.0;
 
     // Mouse
@@ -32,6 +33,8 @@ int main() {
     window.setMouseCursorVisible(false);
     sf::Mouse::setPosition(lastMousePos, window);
     float sensitivity = 0.2f;
+
+    float moveSpeed = 0.1f;
 
     // Load shader
     sf::Shader shader;
@@ -51,6 +54,9 @@ int main() {
             if (event.type == sf::Event::Closed)
                 window.close();
         }
+        
+        sf::Vector3f dir2bh(blackholePos - cameraPos);
+        float distanceToBlackhole = std::sqrt(dir2bh.x * dir2bh.x + dir2bh.y * dir2bh.y + dir2bh.z * dir2bh.z);
 
         // --- Mouse input ---
         sf::Vector2i mousePos = sf::Mouse::getPosition(window);
@@ -64,7 +70,6 @@ int main() {
         sf::Mouse::setPosition(lastMousePos, window);
 
         // --- Keyboard input ---
-        float moveSpeed = 0.1f;
         float yawRad = cameraDirPolar.z * 3.14159f / 180.0f;
         float pitchRad = cameraDirPolar.y * 3.14159f / 180.0f;
 
@@ -79,8 +84,8 @@ int main() {
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) cameraPos += up * moveSpeed;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::C)) cameraPos -= up * moveSpeed;
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::M)) blackholeMass += 0.01;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::N)) blackholeMass -= 0.01;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::M)) blackholeMass += 0.5;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::N)) blackholeMass -= 0.5;
 
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::K)) blackholeRadius += 0.01;
@@ -89,6 +94,9 @@ int main() {
         
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::I)) accretionDiskRadius += 0.1;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::U)) accretionDiskRadius -= 0.1;
+
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) moveSpeed += 0.01;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::O)) moveSpeed -= 0.01;
 
         // --- Shader uniforms ---
         
@@ -122,6 +130,8 @@ int main() {
         std::cout << "Blackhole radius: " << blackholeRadius << "\n";
         std::cout << "Camera rotation (pitch, yaw): (" << cameraDirPolar.y << ", " << cameraDirPolar.z << ")" << "\n";
         std::cout << "Camera position (x, y, z): (" << cameraPos.x << ", " << cameraPos.y << ", " << cameraPos.z << ")" << "\n";
+        std::cout << "Camera movement speed: " << moveSpeed << "\n";
+        std::cout << "Distance from event horizon: " << distanceToBlackhole - 2*blackholeMass << "\n";
     }
 
     return 0;
