@@ -6,11 +6,10 @@ uniform float pitch;
 uniform vec3 blackholePos;
 uniform float blackholeRadius;
 uniform float blackholeMass;
-uniform float rayStepSize;
 uniform int rayIterations;
 uniform float screenWidth;
 uniform float screenHeight;
-uniform float fov; // in degrees
+uniform float fov;
 uniform float accretionDiskRadius;
 
 out vec4 fragColor;
@@ -31,13 +30,19 @@ float sdBox( vec3 p, vec3 b )
 
 float sdBoxFrame( vec3 p, vec3 b, float e )
 {
-    p = repeat(p, 30);
+    // p = repeat(p, 30);
     p = abs(p  )-b;
     vec3 q = abs(p+e)-e;
     return min(min(
     length(max(vec3(p.x,q.y,q.z),0.0))+min(max(p.x,max(q.y,q.z)),0.0),
     length(max(vec3(q.x,p.y,q.z),0.0))+min(max(q.x,max(p.y,q.z)),0.0)),
     length(max(vec3(q.x,q.y,p.z),0.0))+min(max(q.x,max(q.y,p.z)),0.0));
+}
+
+float sdTorus( vec3 p, vec2 t )
+{
+  vec2 q = vec2(length(p.xz)-t.x,p.y);
+  return length(q)-t.y;
 }
 
 float sdCappedCylinder( vec3 p, float r, float h )
@@ -50,12 +55,13 @@ void main() {
     // Normalized device coordinates [-1, 1]
     vec2 uv = (gl_FragCoord.xy / vec2(screenWidth, screenHeight)) * 2.0 - 1.0;
     uv.x *= screenWidth / screenHeight; // preserve aspect ratio
-
-    float cursorSize = 0.01;
-    if (uv.x < cursorSize && uv.x > -cursorSize && uv.y < cursorSize && uv.y > -cursorSize) {
-        fragColor = vec4(1.0);
-        return;
-    }
+    
+    // Crosshair
+    // float cursorSize = 0.005;
+    // if (uv.x < cursorSize && uv.x > -cursorSize && uv.y < cursorSize && uv.y > -cursorSize) {
+    //     fragColor = vec4(1.0);
+    //     return;
+    // }
 
     // Convert FOV to radians
     float fovRad = radians(fov);
@@ -89,60 +95,73 @@ void main() {
     for (int i = 0; i < rayIterations; i++) {
         // Calculate closest distance
         float blackholeDistance = sdSphere(rayPos - blackholePos, rs);
-        float accretionDiskDistance =  sdCappedCylinder(rayPos - blackholePos, accretionDiskRadius, diskThickness);
-        float ballDistance = sdSphere(repeat(rayPos, 50.0), 2.0);
+        // float accretionDiskDistance =  sdCappedCylinder(rayPos - blackholePos, accretionDiskRadius, diskThickness);
+        // float ballDistance = sdSphere(repeat(rayPos - vec3(25.0), 50.0), 2.0);
+        float boxDistance = sdBoxFrame(rayPos - vec3(10, 0, 0), vec3(3.0), 0.3);
+        float torusDistance = sdTorus(rayPos - vec3(0.0, -10.0, 0.0), vec2(3.0, 0.5));
 
         float closestDist = blackholeDistance;
-        closestDist = min(closestDist, accretionDiskDistance);
-        closestDist = min(closestDist, ballDistance);
+        // closestDist = min(closestDist, accretionDiskDistance);
+        closestDist = min(closestDist, boxDistance);
+        closestDist = min(closestDist, torusDistance);
 
-        // GEODECIS CALCULTION :SOB:
-        // compute vector from Blackhole to ray position
+
+
+        // === GR Geodesic Light Bending (Schwarzschild) ===
+
+        // Vector from black hole to current ray position
         vec3 r = rayPos - blackholePos;
         float rLen = length(r);
 
-        // avoid cresh
-        float rLen2 = max(rLen * rLen, 1e-6);
+        // Avoid division explosion
+        float epsilon = 1e-6;
+        float safeR = max(rLen, epsilon);
 
-        // first-order bending acceleration
-        float vr = dot(rayDir, r);
-        float vr2 = vr * vr;
-        float r4 = rLen2 * rLen2;
+        // Schwarzschild radius
+        float rs = 2.0 * blackholeMass;
 
-        vec3 acc = (rs / (rLen2 * rLen)) * ((1.5 * vr2 / rLen2 - 1.0) * r);
-        acc *= 1.0;
+        // Project rayDir onto r to compute radial component
+        float vr = dot(rayDir, r) / safeR;
 
-        // integrate
+        // General Relativistic "acceleration" term for null geodesics
+        vec3 acc = -(rs / (safeR * safeR)) * 
+                ((1.0 - 1.5 * (vr * vr)) * r / safeR);
+
+        // Curvature correction so larger marching steps still bend correctly
+        float metricScale = 1.0 / (1.0 + rs / safeR);
+
+        // Apply curvature scaled by affine (not spatial!) step
         rayDir += acc * closestDist;
+        rayDir = normalize(rayDir);
 
-        // renormalize with fast safe inverse sqrt
-        rayDir *= inversesqrt(max(dot(rayDir, rayDir), 1e-12));
-
-        // advance
+        // Move forward by standard spatial marching
         rayPos += rayDir * closestDist;
+
+
 
         float touchDistance = 0.01;
         if (closestDist < touchDistance) {
-            if (blackholeDistance < touchDistance) {
+            if (blackholeDistance < touchDistance  && dot(rayDir, blackholePos - rayPos) < 0.0) {
                 fragColor = vec4(0.0, 0.0, 0.0, 1.0);
                 return;
             }
-            if (accretionDiskDistance < touchDistance) {
-                float redness = 1 + 0.2 * sin((length(rayPos.xz - blackholePos.xz) - accretionDiskRadius)*10.0);
-                vec3 color = vec3(1.0, 0.7 * redness, 0.3 * redness);
-                normalize(color);
+            // if (accretionDiskDistance < touchDistance) {
+            //     float colorAbberation = 1 + 0.1 * sin((length(rayPos.xz - blackholePos.xz) - accretionDiskRadius)*2.0);
+            //     vec3 color = vec3(1.0 * colorAbberation, 0.56 * colorAbberation, 0);
+            //     normalize(color);
 
-                fragColor = vec4(color, 1.0); // glowing orange disk
-                return;
-            }
-            if (ballDistance < touchDistance) { 
-                fragColor = vec4(1.0, 0.0, 0.0, 1.0);
+            //     fragColor = vec4(color, 1.0);
+            //     return;
+            // }
+            if (torusDistance < touchDistance || boxDistance < touchDistance) { 
+                fragColor = vec4((rayDir * 0.5 + 0.5), 1.0);
                 return;
             }
         }
 
         if (closestDist > 1000.0 || length(cameraPos - rayPos) > 1000.0) {
-            fragColor = vec4(1 - (rayDir * 0.5 + 0.5), 1.0);
+            // fragColor = vec4(1 - (rayDir * 0.5 + 0.5), 1.0);
+            fragColor = vec4(0.0);
             return;
         }
 
@@ -157,5 +176,5 @@ void main() {
 
     }
 
-    fragColor = vec4(rayDir * 0.5 + 0.5, 1.0);
+    fragColor = vec4(0.0, 0.0, 0.0, 1.0);
 }
