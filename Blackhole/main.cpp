@@ -5,9 +5,9 @@
 
 int main() {
     // Base resolution
-    int width = 800;
-    int height = 600;
-    int displayScale = 2;
+    int width = 2000;
+    int height = 1200;
+    int displayScale = 1;
 
     float fov = 90.0f;
 
@@ -36,7 +36,7 @@ int main() {
 
     // Load shader
     sf::Shader shader;
-    if (!shader.loadFromFile("blackhole.frag", sf::Shader::Fragment)) {
+    if (!shader.loadFromFile("/home/maximo/cpp-projects/Blackhole/blackhole.frag", sf::Shader::Fragment)) {
         std::cerr << "Failed to load shader\n";
         return -1;
     }

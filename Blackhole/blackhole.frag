@@ -92,22 +92,21 @@ void main() {
 
     float diskThickness = 0.05;
 
+    vec3 targetPosition;
+
     for (int i = 0; i < rayIterations; i++) {
         // Calculate closest distance
         float blackholeDistance = sdSphere(rayPos - blackholePos, rs);
         // float accretionDiskDistance =  sdCappedCylinder(rayPos - blackholePos, accretionDiskRadius, diskThickness);
-        // float ballDistance = sdSphere(repeat(rayPos - vec3(25.0), 50.0), 2.0);
+        float ballDistance = sdSphere(repeat(rayPos - vec3(25.0), 50.0), 2.0);
         float boxDistance = sdBoxFrame(rayPos - vec3(10, 0, 0), vec3(3.0), 0.3);
         float torusDistance = sdTorus(rayPos - vec3(0.0, -10.0, 0.0), vec2(3.0, 0.5));
 
         float closestDist = blackholeDistance;
         // closestDist = min(closestDist, accretionDiskDistance);
-        closestDist = min(closestDist, boxDistance);
+        closestDist = min(closestDist, ballDistance);
         closestDist = min(closestDist, torusDistance);
 
-
-
-        // === GR Geodesic Light Bending (Schwarzschild) ===
 
         // Vector from black hole to current ray position
         vec3 r = rayPos - blackholePos;
@@ -153,7 +152,7 @@ void main() {
             //     fragColor = vec4(color, 1.0);
             //     return;
             // }
-            if (torusDistance < touchDistance || boxDistance < touchDistance) { 
+            if (torusDistance < touchDistance || boxDistance < touchDistance || ballDistance < touchDistance) { 
                 fragColor = vec4((rayDir * 0.5 + 0.5), 1.0);
                 return;
             }
