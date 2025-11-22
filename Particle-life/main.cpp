@@ -32,6 +32,10 @@ class Particle {
     }
 };
 
+sf::Vector2f normalized(sf::Vector2f vec) {
+    return vec / (float) hypot(vec.x, vec.y);
+}
+
 void interact(Particle& particle1, const Particle& particle2, const std::vector<std::vector<float>>& attractionMatrix, int maxDistance = 100, int minDistance = 20) {
 
     float attraction = attractionMatrix.at(particle1.color).at(particle2.color);
@@ -52,7 +56,7 @@ void interact(Particle& particle1, const Particle& particle2, const std::vector<
         float a = attraction/(maxDistance-minDistance);
 
         if (dist < minDistance) {
-            force = dist/minDistance - 1;
+            force = (dist/minDistance)*2 - 2;
         }
         else if (dist < maxDistance/2 + minDistance/2) {
             force = a*dist - a*minDistance;
@@ -61,10 +65,37 @@ void interact(Particle& particle1, const Particle& particle2, const std::vector<
             force = -a*dist + a*maxDistance;
         }
 
-        force *= 2;
+        force *= 1.0;
         // Apply force to particle1’s velocity
         particle1.velocity += dir * force;
     }
+}
+
+sf::Vector3f hueToRGB(float h)
+{
+    // Ensure hue wraps around
+    h = fmodf(h, 1.0f);
+    if (h < 0.0f) h += 1.0f;
+
+    float r, g, b;
+
+    float i = std::floor(h * 6.0f);
+    float f = h * 6.0f - i;
+
+    float p = 0.0f;
+    float q = 1.0f - f;
+    float t = f;
+
+    switch (static_cast<int>(i) % 6) {
+        case 0: r = 1.0f; g = t;     b = 0.0f; break;
+        case 1: r = q;    g = 1.0f; b = 0.0f; break;
+        case 2: r = 0.0f; g = 1.0f; b = t;     break;
+        case 3: r = 0.0f; g = q;    b = 1.0f; break;
+        case 4: r = t;    g = 0.0f; b = 1.0f; break;
+        case 5: r = 1.0f; g = 0.0f; b = q;     break;
+    }
+
+    return sf::Vector3f(r, g, b);
 }
 
 int main() {
@@ -72,12 +103,12 @@ int main() {
     int screenWidth = 2880;
     int screenHeight = 1620;
 
-    int particleAmount = 1500;
+    int particleAmount = 500;
     std::vector<Particle> particles;
 
-    int maxDistance = 150;
+    int maxDistance = 200;
     
-    int colorsAmount = 5;
+    int colorsAmount = 10;
 
     // Create a random device (used to seed)
     std::random_device rd;
@@ -93,17 +124,13 @@ int main() {
 
     std::vector<std::vector<float>> attractionMatrix(colorsAmount, std::vector<float>(colorsAmount, 1.0f));
 
-    std::cout << "\n 1: red \n 2: yellow \n 3: green \n 4: cyan \n 5: blue \n";
     for (int i = 0; i < colorsAmount; ++i) {
-        std::cout << "\n";
         for (int j = 0; j < colorsAmount; ++j) {
             float value = rand_attraction(gen);
             attractionMatrix.at(i).at(j) = value;
-            std::cout << value << "  "; 
         }
     }
 
-    std::cout << "\n";
     for (int i = 0; i < particleAmount; ++i) {
         Particle particle;
         particle.position = sf::Vector2f(rand_width(gen), rand_height(gen));
@@ -113,7 +140,7 @@ int main() {
 
     sf::RenderWindow window;
     window.create(sf::VideoMode(screenWidth, screenHeight), "particle life wooooo", sf::Style::Fullscreen);
-    window.setFramerateLimit(60);
+    window.setFramerateLimit(30);
 
     while (window.isOpen()) {
         sf::Event event;
@@ -123,16 +150,12 @@ int main() {
             }
             if (event.type == sf::Event::KeyPressed) {
                 if (event.key.code == sf::Keyboard::R) {
-                    std::cout << "\n 1: red \n 2: yellow \n 3: green \n 4: cyan \n 5: blue \n";
                     for (int i = 0; i < colorsAmount; ++i) {
-                        std::cout << "\n";
                         for (int j = 0; j < colorsAmount; ++j) {
                             float value = rand_attraction(gen);
                             attractionMatrix.at(i).at(j) = value;
-                            std::cout << value << "  "; 
                         }
                     }
-                    std::cout << "\n";
                 }
                 if (event.key.code == sf::Keyboard::Escape) {
                     window.close();
@@ -146,7 +169,7 @@ int main() {
         // auto start = std::chrono::high_resolution_clock::now(); //    CLOCK START  
         #pragma omp parallel for collapse(1)
         for (Particle &particle : particles) {
-
+            
             // Wrap particles around the screen            
             particle.nearLeftEdge = false;
             particle.nearRightEdge = false;
@@ -180,6 +203,20 @@ int main() {
             }
 
             // Calculate physics
+
+            sf::Vector2i mousePosInt = sf::Mouse::getPosition(window);
+            sf::Vector2f mousePos = sf::Vector2f(mousePosInt.x, mousePosInt.y);
+
+            sf::Vector2f mouseDirection = mousePos - particle.position;
+            float mouseForce = 5.0/(hypot(mouseDirection.x, mouseDirection.y)/200.0+1);
+
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && hypot(mouseDirection.x, mouseDirection.y) < 200.0) {
+                particle.velocity += normalized(mouseDirection) * mouseForce;
+            }
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Right) && hypot(mouseDirection.x, mouseDirection.y) < 200.0) {
+                particle.velocity -= normalized(mouseDirection) * mouseForce;
+            }
+
             for (Particle &otherParticle : particles) {
                 // Calculate force
                 if (&otherParticle == &particle) {
@@ -226,23 +263,11 @@ int main() {
 
             particleShape.setOrigin(sf::Vector2f(particle.radius, particle.radius));
             particleShape.setPosition(particle.position);
-            switch (particle.color) {
-                case 0:
-                    particleShape.setFillColor(sf::Color(255, 0, 0));
-                    break;
-                case 1:
-                    particleShape.setFillColor(sf::Color(255, 255, 0));
-                    break;
-                case 2:
-                    particleShape.setFillColor(sf::Color(0, 255, 0));
-                    break;
-                case 3:
-                    particleShape.setFillColor(sf::Color(0, 255, 255));
-                    break;
-                case 4:
-                    particleShape.setFillColor(sf::Color(0, 0, 255));
-                    break;
-            }
+            particleShape.setFillColor(sf::Color(
+                hueToRGB((float)particle.color / (float)colorsAmount).x * 255,
+                hueToRGB((float)particle.color / (float)colorsAmount).y * 255,
+                hueToRGB((float)particle.color / (float)colorsAmount).z * 255
+            )); 
 
             window.draw(particleShape);
         }
