@@ -107,12 +107,17 @@ int main() {
     int screenWidth = 2880;
     int screenHeight = 1620;
 
-    int particleAmount = 400;
+    int particleAmount;
+    std::cout << "\nPartice amount: ";
+    std::cin >> particleAmount;
+
     std::vector<Particle> particles;
 
     int maxDistance = 200;
     
-    int colorsAmount = 10;
+    int colorsAmount;
+    std::cout << "\nColor amount: ";
+    std::cin >> colorsAmount;
 
     // Create a random device (used to seed)
     std::random_device rd;
