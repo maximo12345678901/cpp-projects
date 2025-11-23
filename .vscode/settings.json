@@ -3,6 +3,7 @@
     "files.associations": {
         "vector": "cpp",
         "cstdlib": "cpp",
-        "random": "cpp"
+        "random": "cpp",
+        "fstream": "cpp"
     }
 }
