@@ -36,10 +36,14 @@ sf::Vector2f normalized(sf::Vector2f vec) {
     return vec / (float) hypot(vec.x, vec.y);
 }
 
-void interact(Particle& particle1, const Particle& particle2, const std::vector<std::vector<float>>& attractionMatrix, int maxDistance = 100, int minDistance = 20) {
+void interact(Particle& particle1, const Particle& particle2, const std::vector<std::vector<float>>* attractionMatrix, int maxDistance = 100, int minDistance = 20, float manualForce = 5.0) {
+    float attraction;
 
-    float attraction = attractionMatrix.at(particle1.color).at(particle2.color);
-
+    if (attractionMatrix == nullptr) {
+        attraction = manualForce;
+    } else {
+        attraction = (*attractionMatrix)[particle1.color][particle2.color];
+    }
     // direction
     sf::Vector2f diff = particle2.position - particle1.position;
     float distSq = diff.x * diff.x + diff.y * diff.y;
@@ -103,7 +107,7 @@ int main() {
     int screenWidth = 2880;
     int screenHeight = 1620;
 
-    int particleAmount = 500;
+    int particleAmount = 400;
     std::vector<Particle> particles;
 
     int maxDistance = 200;
@@ -142,6 +146,8 @@ int main() {
     window.create(sf::VideoMode(screenWidth, screenHeight), "particle life wooooo", sf::Style::Fullscreen);
     window.setFramerateLimit(30);
 
+    Particle cursorParticle;
+
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -165,6 +171,12 @@ int main() {
         }
 
         window.clear(sf::Color(0, 0, 0));
+        
+        // A few variables regarding mouse force
+        sf::Vector2i mousePosInt = sf::Mouse::getPosition(window);
+        cursorParticle.position = sf::Vector2f(mousePosInt.x, mousePosInt.y);
+        float mouseForce = 5.0;
+        float mouseInfluenceRangeMultiplier = 2.0;
 
         // auto start = std::chrono::high_resolution_clock::now(); //    CLOCK START  
         #pragma omp parallel for collapse(1)
@@ -204,49 +216,73 @@ int main() {
 
             // Calculate physics
 
-            sf::Vector2i mousePosInt = sf::Mouse::getPosition(window);
-            sf::Vector2f mousePos = sf::Vector2f(mousePosInt.x, mousePosInt.y);
-
-            sf::Vector2f mouseDirection = mousePos - particle.position;
-            float mouseForce = 5.0/(hypot(mouseDirection.x, mouseDirection.y)/200.0+1);
-
-            if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && hypot(mouseDirection.x, mouseDirection.y) < 200.0) {
-                particle.velocity += normalized(mouseDirection) * mouseForce;
-            }
-            if (sf::Mouse::isButtonPressed(sf::Mouse::Right) && hypot(mouseDirection.x, mouseDirection.y) < 200.0) {
-                particle.velocity -= normalized(mouseDirection) * mouseForce;
-            }
-
+            // Check if self
             for (Particle &otherParticle : particles) {
                 // Calculate force
                 if (&otherParticle == &particle) {
                     continue;
                 }
-                interact(particle, otherParticle, attractionMatrix);
+                interact(particle, otherParticle, &attractionMatrix, maxDistance);
+            }
+            // Mouse controls
+
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+                interact(particle, cursorParticle, nullptr, maxDistance * mouseInfluenceRangeMultiplier, 0, mouseForce);
+
+                cursorParticle.position.x += screenWidth;
+                interact(particle, cursorParticle, nullptr, maxDistance * mouseInfluenceRangeMultiplier, 0, mouseForce);
+                cursorParticle.position.x -= 2*screenWidth;
+                interact(particle, cursorParticle, nullptr, maxDistance * mouseInfluenceRangeMultiplier, 0, mouseForce);
+
+                cursorParticle.position.x += screenWidth;
+
+                cursorParticle.position.y += screenHeight;
+                interact(particle, cursorParticle, nullptr, maxDistance * mouseInfluenceRangeMultiplier, 0, mouseForce);
+                cursorParticle.position.y -= 2*screenHeight;
+                interact(particle, cursorParticle, nullptr, maxDistance * mouseInfluenceRangeMultiplier, 0, mouseForce);
+                
+                cursorParticle.position.y += screenHeight;
+            }
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
+                interact(particle, cursorParticle, nullptr, maxDistance * mouseInfluenceRangeMultiplier, 0, -mouseForce);
+
+                cursorParticle.position.x += screenWidth;
+                interact(particle, cursorParticle, nullptr, maxDistance * mouseInfluenceRangeMultiplier, 0, -mouseForce);
+                cursorParticle.position.x -= 2*screenWidth;
+                interact(particle, cursorParticle, nullptr, maxDistance * mouseInfluenceRangeMultiplier, 0, -mouseForce);
+
+                cursorParticle.position.x += screenWidth;
+
+                cursorParticle.position.y += screenHeight;
+                interact(particle, cursorParticle, nullptr, maxDistance * mouseInfluenceRangeMultiplier, 0, -mouseForce);
+                cursorParticle.position.y -= 2*screenHeight;
+                interact(particle, cursorParticle, nullptr, maxDistance * mouseInfluenceRangeMultiplier, 0, -mouseForce);
+                
+                cursorParticle.position.y += screenHeight;
             }
             // Make forces wrap around the edges
             for (Particle otherParticleUp : particles) {
                 if (otherParticleUp.nearBottomEdge) {
                     otherParticleUp.position.y -= screenHeight;
-                    interact(particle, otherParticleUp, attractionMatrix, maxDistance);
+                    interact(particle, otherParticleUp, &attractionMatrix, maxDistance);
                 }
             }
             for (Particle otherParticleDown : particles) {
                 if (otherParticleDown.nearTopEdge) {
                     otherParticleDown.position.y += screenHeight;
-                    interact(particle, otherParticleDown, attractionMatrix, maxDistance);
+                    interact(particle, otherParticleDown, &attractionMatrix, maxDistance);
                 }
             }
             for (Particle otherParticleLeft : particles) {
                 if (otherParticleLeft.nearRightEdge) {
                     otherParticleLeft.position.x -= screenWidth;
-                    interact(particle, otherParticleLeft, attractionMatrix, maxDistance);
+                    interact(particle, otherParticleLeft, &attractionMatrix, maxDistance);
                 }
             }
             for (Particle otherParticleRight : particles) {
                 if (otherParticleRight.nearLeftEdge) {
                     otherParticleRight.position.x += screenWidth;
-                    interact(particle, otherParticleRight, attractionMatrix, maxDistance);
+                    interact(particle, otherParticleRight, &attractionMatrix, maxDistance);
                 } 
             }
             particle.velocity *= 0.8f;
