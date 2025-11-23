@@ -24,7 +24,7 @@ class Particle {
         velocity = sf::Vector2f(0, 0);
 
         color = 0;
-        radius = 3;
+        radius = 2;
         nearLeftEdge = false;
         nearRightEdge = false;
         nearTopEdge = false;
@@ -104,8 +104,8 @@ sf::Vector3f hueToRGB(float h)
 
 int main() {
 
-    int screenWidth = 2880;
-    int screenHeight = 1620;
+    int screenWidth = 1600;
+    int screenHeight = 900;
 
     int particleAmount;
     std::cout << "\nPartice amount: ";
