@@ -103,9 +103,9 @@ sf::Vector3f hueToRGB(float h)
 }
 
 int main() {
-
-    int screenWidth = 1600;
-    int screenHeight = 900;
+    sf::VideoMode desktop = sf::VideoMode::getDesktopMode();
+    int screenWidth = desktop.width;
+    int screenHeight = desktop.height;
 
     int particleAmount;
     std::cout << "\nPartice amount: ";
