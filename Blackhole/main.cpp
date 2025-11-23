@@ -36,7 +36,7 @@ int main() {
 
     // Load shader
     sf::Shader shader;
-    if (!shader.loadFromFile("/home/maximo/cpp-projects/Blackhole/blackhole.frag", sf::Shader::Fragment)) {
+    if (!shader.loadFromFile("./blackhole.frag", sf::Shader::Fragment)) {
         std::cerr << "Failed to load shader\n";
         return -1;
     }
