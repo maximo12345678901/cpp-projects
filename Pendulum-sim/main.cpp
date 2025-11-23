@@ -268,7 +268,7 @@ int main() {
 
     // Set up the color map
     sf::Image originalColorMap;
-    if (!originalColorMap.loadFromFile("/home/maximo/cpp-projects/Pendulum-sim/better-colormap.png")) {
+    if (!originalColorMap.loadFromFile("./better-colormap.png")) {
         return 1;
     }
     unsigned int originalColorMapWidth  = originalColorMap.getSize().x;
