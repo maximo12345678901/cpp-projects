@@ -180,7 +180,7 @@ int main() {
         // A few variables regarding mouse force
         sf::Vector2i mousePosInt = sf::Mouse::getPosition(window);
         cursorParticle.position = sf::Vector2f(mousePosInt.x, mousePosInt.y);
-        float mouseForce = 5.0;
+        float mouseForce = 100.0;
         float mouseInfluenceRangeMultiplier = 2.0;
 
         // auto start = std::chrono::high_resolution_clock::now(); //    CLOCK START  
@@ -249,19 +249,19 @@ int main() {
                 cursorParticle.position.y += screenHeight;
             }
             if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
-                interact(particle, cursorParticle, nullptr, maxDistance * mouseInfluenceRangeMultiplier, 0, -mouseForce);
+                interact(particle, cursorParticle, nullptr, maxDistance * mouseInfluenceRangeMultiplier, 0, -2 * mouseForce);
 
                 cursorParticle.position.x += screenWidth;
-                interact(particle, cursorParticle, nullptr, maxDistance * mouseInfluenceRangeMultiplier, 0, -mouseForce);
+                interact(particle, cursorParticle, nullptr, maxDistance * mouseInfluenceRangeMultiplier, 0, -2 * mouseForce);
                 cursorParticle.position.x -= 2*screenWidth;
-                interact(particle, cursorParticle, nullptr, maxDistance * mouseInfluenceRangeMultiplier, 0, -mouseForce);
+                interact(particle, cursorParticle, nullptr, maxDistance * mouseInfluenceRangeMultiplier, 0, -2 * mouseForce);
 
                 cursorParticle.position.x += screenWidth;
 
                 cursorParticle.position.y += screenHeight;
-                interact(particle, cursorParticle, nullptr, maxDistance * mouseInfluenceRangeMultiplier, 0, -mouseForce);
+                interact(particle, cursorParticle, nullptr, maxDistance * mouseInfluenceRangeMultiplier, 0, -2 * mouseForce);
                 cursorParticle.position.y -= 2*screenHeight;
-                interact(particle, cursorParticle, nullptr, maxDistance * mouseInfluenceRangeMultiplier, 0, -mouseForce);
+                interact(particle, cursorParticle, nullptr, maxDistance * mouseInfluenceRangeMultiplier, 0, -2 * mouseForce);
                 
                 cursorParticle.position.y += screenHeight;
             }
