@@ -53,8 +53,8 @@ ComplexNumber pixelToComplex(int x, int y, int maxX, int maxY) {
 sf::Vector2f complexToPixel(ComplexNumber complex, double maxReal, double maxImaginary, int screenDiameter) {
 	double x = complex.real * ((screenDiameter / 2.0))/maxReal;
 	double y = complex.imaginary * ((screenDiameter / 2.0))/maxImaginary;
-	x += screenDiameter / 2.0;
-	y += screenDiameter / 2.0;
+	x += screenDiameter;
+	y += screenDiameter;
 	return sf::Vector2f((float)x, (float)y);
 }
 
@@ -62,10 +62,16 @@ int main() {
 	sf::RenderWindow window;
 
 	int screenDiameter = 500;
-	window.create(sf::VideoMode(screenDiameter, screenDiameter), "Polynomial visualision");
+	window.create(sf::VideoMode(screenDiameter*2, screenDiameter*2), "Polynomial visualision");
 	window.setFramerateLimit(60);
 	sf::Image image;
 	image.create(screenDiameter, screenDiameter, sf::Color::Black);
+
+	ComplexNumber a(0, 0);
+	ComplexNumber b(0, 0);
+	ComplexNumber c(0, 0);
+	ComplexNumber d(0, 0);
+	ComplexNumber e(0, 0);
 
 	while (window.isOpen()){
 		sf::Event event;
@@ -75,11 +81,73 @@ int main() {
 			}
 		}
 		
-		ComplexNumber a(1, 1);
-		ComplexNumber b(2, 1);
-		ComplexNumber c(1, 1);
-		ComplexNumber d(1, 3);
-		ComplexNumber e(1, 1);
+
+		double changeSpeed = 0.1f;
+
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q)) {
+			a.real -= changeSpeed;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
+			a.real += changeSpeed;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
+			a.imaginary -= changeSpeed;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
+			a.imaginary += changeSpeed;
+		}
+
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
+			b.real -= changeSpeed;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
+			b.real += changeSpeed;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+			b.imaginary -= changeSpeed;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::F)) {
+			b.imaginary += changeSpeed;
+		}
+
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::T)) {
+			c.real -= changeSpeed;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Y)) {
+			c.real += changeSpeed;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
+			c.imaginary -= changeSpeed;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::H)) {
+			c.imaginary += changeSpeed;
+		}
+
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::U)) {
+			d.real -= changeSpeed;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::I)) {
+			d.real += changeSpeed;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::J)) {
+			d.imaginary -= changeSpeed;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::K)) {
+			d.imaginary += changeSpeed;
+		}
+		
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::O)) {
+			e.real -= changeSpeed;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) {
+			e.real += changeSpeed;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::L)) {
+			e.imaginary -= changeSpeed;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Semicolon)) {
+			e.imaginary += changeSpeed;
+		}
 
 
 		for (int x = 0; x < screenDiameter; x++) {
@@ -87,16 +155,8 @@ int main() {
 
 				ComplexNumber input = pixelToComplex(x, y, screenDiameter, screenDiameter);
 
-				ComplexNumber result =
-				Polynomial(
-				input, // input
-
-				a, // a
-				b, // b
-				c, // c
-				d, // d
-				e  // e
-				);
+				ComplexNumber result = Polynomial(input, a, b, c, d, e);
+				// ComplexNumber result = input^0.5;
 
 				double distance = hypot(result.real, result.imaginary);
 
@@ -109,6 +169,7 @@ int main() {
 		sf::Texture texture;
 		texture.loadFromImage(image);
 		sf::Sprite sprite(texture);
+		sprite.setScale(2.0, 2.0);
 
 		window.clear();
 		window.draw(sprite);
