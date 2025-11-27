@@ -1,10 +1,6 @@
 # My collection of C++ projects
 
-To actually be able to use build.sh or execute binaries, you need to install sfml2.
-Install the package named
-```smfl2```
-Make sure it is installed in
-```/opt/sfml2/```
+To actually be able to use build.sh, you need to install sfml 2.5, the package name may vary, but make sure to install SFML version 2.5
 Then you can use build.sh as follows:
 ```cd Project-you-want```
 ```../build.sh main.cpp <binaryname>```
