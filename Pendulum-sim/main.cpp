@@ -241,7 +241,7 @@ class Pendulum {
 int main() {
     bool running = true;
     bool doGenerateMap;
-    std::cout << "\nstate space? (y/N)\n";
+    std::cout << "\nstate space? (y/n)\n";
     std::string input;
     std::cin >> input;
     if (input == "y" || input == "Y") {
@@ -274,7 +274,7 @@ int main() {
     unsigned int originalColorMapWidth  = originalColorMap.getSize().x;
     unsigned int originalColorMapHeight = originalColorMap.getSize().y;
 
-    int resolution = 200;
+    int resolution = 10;
     sf::Image currentColorMap;
     currentColorMap.create(originalColorMapWidth, originalColorMapHeight);
 
@@ -295,8 +295,8 @@ int main() {
 
         for (unsigned int y = 0; y < originalColorMapHeight; ++y) {
             for (unsigned int x = 0; x < originalColorMapWidth; ++x) {
-                originalColorValues[y][x] = originalColorMap.getPixel(x, y);
-                currentColorValues[y][x] = originalColorMap.getPixel(x, y);
+                originalColorValues.at(y).at(x) = originalColorMap.getPixel(x, y);
+                currentColorValues.at(y).at(x) = originalColorMap.getPixel(x, y);
             }
         }
 
@@ -313,7 +313,7 @@ int main() {
                 pendulum.th2 = normY;
                 
 
-                pendulums[i][j] = pendulum;
+                pendulums.at(i).at(j) = pendulum;
             }
         }
     }
@@ -383,7 +383,7 @@ int main() {
 
             sf::CircleShape graphPoint(pointSize);
             graphPoint.setFillColor(sf::Color(255, 255, 255));
-            graphPoint.setOrigin(pointSize / 2, pointSize / 2);
+            graphPoint.setOrigin(pointSize, pointSize);
 
             graphPoint.setPosition(pendulum.th1 * scale + 500, pendulum.th2 * scale + 500);
 
@@ -396,15 +396,12 @@ int main() {
 
             // Center all points so that the most recent one is in the middle
             for (sf::CircleShape point : graphTrail) {
-                // sf::Vector2f newPosition;
-                // newPosition.x = point.getPosition().x - graphTrail.back().getPosition().x + graphWindow.getSize().x / 2;
-                // newPosition.y = point.getPosition().y - graphTrail.back().getPosition().y + graphWindow.getSize().y / 2;
-                // point.setPosition(newPosition);
+                sf::Vector2f newPosition;
+                newPosition.x = point.getPosition().x - graphTrail.back().getPosition().x + graphWindow.getSize().x / 2;
+                newPosition.y = point.getPosition().y - graphTrail.back().getPosition().y + graphWindow.getSize().y / 2;
+                point.setPosition(newPosition);
                 graphWindow.draw(point);
             }
-            graphPoint.setRadius(pointSize * 4);
-            graphPoint.setOrigin(pointSize * 4 / 2, pointSize * 4 / 2);
-            graphWindow.draw(graphPoint);
             pendulum.UpdatePendulumRK4(G, dt);
             pendulum.DrawPendulum(simulationWindow);
 
@@ -416,10 +413,10 @@ int main() {
             for (int x = 0; x < resolution; ++x) {
                 for (int y = 0; y < resolution; ++y) {
 
-                    pendulums[x][y].UpdatePendulumRK4(G, dt);
+                    pendulums.at(x).at(y).UpdatePendulumRK4(G, dt);
 
-                    float th1 = wrap(-M_PI, M_PI, pendulums[x][y].th1);
-                    float th2 = wrap(-M_PI, M_PI, pendulums[x][y].th2);
+                    float th1 = wrap(-M_PI, M_PI, pendulums.at(x).at(y).th1);
+                    float th2 = wrap(-M_PI, M_PI, pendulums.at(x).at(y).th2);
 
                     int srcX = (int)((th1 + M_PI) / (2 * M_PI) * (originalColorMapWidth  - 1));
                     int srcY = (int)((th2 + M_PI) / (2 * M_PI) * (originalColorMapHeight - 1));
@@ -427,23 +424,31 @@ int main() {
                     int dstX = x * originalColorMapWidth  / resolution;
                     int dstY = y * originalColorMapHeight / resolution;
 
-                    sf::Color c = originalColorValues[srcY][srcX]; 
+                    sf::Color c = originalColorValues.at(srcY).at(srcX); 
                     int fill = std::ceil(1000 / resolution);
                     for (int i = 0; i < fill; ++i) {
                         for (int j = 0; j < fill; ++j) {
-                            currentColorValues[dstY + i][dstX + j] = c;
-                            currentColorMap.setPixel(dstX + i, dstY + j, c);
+                            int px = dstX + i;
+                            int py = dstY + j;
+
+                            if (px >= 0 && py >= 0 &&
+                                px < (int)originalColorMapWidth &&
+                                py < (int)originalColorMapHeight)
+                            {
+                                currentColorValues[py][px] = c;
+                                currentColorMap.setPixel(px, py, c);
+                            }
                         }
                     }
                 }
             }
             texture.update(currentColorMap);
 
-            std::ostringstream filenameStream;
-            filenameStream << "frames/frame_" << std::setw(4) << std::setfill('0') << frameCount << ".png";
-            std::string filename = filenameStream.str();
+            // std::ostringstream filenameStream;
+            // filenameStream << "frames/frame_" << std::setw(4) << std::setfill('0') << frameCount << ".png";
+            // std::string filename = filenameStream.str();
 
-            currentColorMap.saveToFile(filename);
+            // currentColorMap.saveToFile(filename);
         }
 
         frameCount++;

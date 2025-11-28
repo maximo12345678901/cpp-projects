@@ -2,6 +2,42 @@
 #include <cmath>
 #include <vector>
 #include <iostream>
+#include <omp.h>
+
+sf::Color hsv(double hue_double, float sat, float val)
+{
+	double factor = 180.0 / M_PI;
+	hue_double *= factor;
+	hue_double;
+	int hue = (int) hue_double;
+	hue %= 360;
+	while(hue<0) hue += 360;
+
+	if(sat<0.f) sat = 0.f;
+	if(sat>1.f) sat = 1.f;
+
+	if(val<0.f) val = 0.f;
+	if(val>1.f) val = 1.f;
+
+	int h = hue/60;
+	float f = float(hue)/60-h;
+	float p = val*(1.f-sat);
+	float q = val*(1.f-sat*f);
+	float t = val*(1.f-sat*(1-f));
+
+	switch(h)
+	{
+		default:
+		case 0:
+		case 6: return sf::Color(val*255, t*255, p*255);
+		case 1: return sf::Color(q*255, val*255, p*255);
+		case 2: return sf::Color(p*255, val*255, t*255);
+		case 3: return sf::Color(p*255, q*255, val*255);
+		case 4: return sf::Color(t*255, p*255, val*255);
+		case 5: return sf::Color(val*255, p*255, q*255);
+	}
+}
+
 
 struct ComplexNumber {
 	double real;
@@ -63,7 +99,7 @@ int main() {
 
 	int screenDiameter = 500;
 	window.create(sf::VideoMode(screenDiameter*2, screenDiameter*2), "Polynomial visualision");
-	window.setFramerateLimit(60);
+	window.setFramerateLimit(30);
 	sf::Image image;
 	image.create(screenDiameter, screenDiameter, sf::Color::Black);
 
@@ -73,6 +109,7 @@ int main() {
 	ComplexNumber d(0, 0);
 	ComplexNumber e(0, 0);
 
+
 	while (window.isOpen()){
 		sf::Event event;
 		while (window.pollEvent(event)) {
@@ -80,76 +117,41 @@ int main() {
 				window.close();
 			}
 		}
-		
 
 		double changeSpeed = 0.1f;
 
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q)) {
-			a.real -= changeSpeed;
+		ComplexNumber arrowDirection(0.0, 0.0);
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
+			arrowDirection.real = -changeSpeed;
 		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
-			a.real += changeSpeed;
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
+			arrowDirection.real = changeSpeed;
 		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
+			arrowDirection.imaginary = -changeSpeed;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
+			arrowDirection.imaginary = changeSpeed;
+		}
+
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
-			a.imaginary -= changeSpeed;
+			a = a + arrowDirection;
 		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
-			a.imaginary += changeSpeed;
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::B)) {
+			b = b + arrowDirection;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::C)) {
+			c = c + arrowDirection;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+			d = d + arrowDirection;
 		}
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
-			b.real -= changeSpeed;
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
-			b.real += changeSpeed;
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
-			b.imaginary -= changeSpeed;
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::F)) {
-			b.imaginary += changeSpeed;
+			e = e + arrowDirection;
 		}
 
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::T)) {
-			c.real -= changeSpeed;
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Y)) {
-			c.real += changeSpeed;
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::G)) {
-			c.imaginary -= changeSpeed;
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::H)) {
-			c.imaginary += changeSpeed;
-		}
-
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::U)) {
-			d.real -= changeSpeed;
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::I)) {
-			d.real += changeSpeed;
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::J)) {
-			d.imaginary -= changeSpeed;
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::K)) {
-			d.imaginary += changeSpeed;
-		}
-		
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::O)) {
-			e.real -= changeSpeed;
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) {
-			e.real += changeSpeed;
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::L)) {
-			e.imaginary -= changeSpeed;
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Semicolon)) {
-			e.imaginary += changeSpeed;
-		}
-
-
+		#pragma omp parallel for collapse(2)
 		for (int x = 0; x < screenDiameter; x++) {
 			for (int y = 0; y < screenDiameter; y++) {
 
@@ -159,10 +161,12 @@ int main() {
 				// ComplexNumber result = input^0.5;
 
 				double distance = hypot(result.real, result.imaginary);
+				double angle = atan2(result.imaginary, result.real);
 
-				double brightnessDecay = 1.0;
-				double closeToZeroValue = (255.0*brightnessDecay)/(hypot(result.real, result.imaginary)+brightnessDecay);
-				image.setPixel(x, y, sf::Color(static_cast<sf::Uint8>(closeToZeroValue), static_cast<sf::Uint8>(closeToZeroValue), static_cast<sf::Uint8>(closeToZeroValue)));
+				double brightnessDecay = 10.0;
+				double globalBrightness = 0.1;
+				double closeToZeroValue = 1.0/distance + globalBrightness + (brightnessDecay * globalBrightness)/(hypot(result.real, result.imaginary)+brightnessDecay);
+				image.setPixel(x, y, hsv(angle, 1.0, closeToZeroValue));
 			}
 		}
 
