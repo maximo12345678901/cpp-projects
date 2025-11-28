@@ -4,11 +4,10 @@
 #include <iostream>
 #include <omp.h>
 
+// hsv to rgb
 sf::Color hsv(double hue_double, float sat, float val)
 {
-	double factor = 180.0 / M_PI;
-	hue_double *= factor;
-	hue_double;
+	hue_double *= 360.0;
 	int hue = (int) hue_double;
 	hue %= 360;
 	while(hue<0) hue += 360;
@@ -38,7 +37,7 @@ sf::Color hsv(double hue_double, float sat, float val)
 	}
 }
 
-
+// Definition for a complex number
 struct ComplexNumber {
 	double real;
 	double imaginary;
@@ -67,16 +66,18 @@ struct ComplexNumber {
 		imaginary = i;
 	}
 };
+// Polynomial function definition
+ComplexNumber Polynomial(ComplexNumber input, std::vector<ComplexNumber>& coefficients) {
+	ComplexNumber result(0.0, 0.0);
 
-ComplexNumber Polynomial(ComplexNumber x, ComplexNumber a, ComplexNumber b, ComplexNumber c, ComplexNumber d, ComplexNumber e) {
-	ComplexNumber firstTerm = a*(x^4.0);
-	ComplexNumber secondTerm = b*(x^3.0);
-	ComplexNumber thirdTerm = c*(x^2.0);
-	ComplexNumber fourthTerm = d*x;
-	ComplexNumber fifthTerm = e;
-	return firstTerm + secondTerm + thirdTerm + fourthTerm + fifthTerm;
+	for (int i = 0; i < coefficients.size(); i++) {
+		result = result + coefficients.at(i) * (input^i);
+	}
+
+	return result;
 }
 
+// Pixel to complex number mapping
 ComplexNumber pixelToComplex(int x, int y, int maxX, int maxY) {
 	double real = x - maxX / 2.0;
 	double imaginary = y - maxY / 2.0;
@@ -86,6 +87,7 @@ ComplexNumber pixelToComplex(int x, int y, int maxX, int maxY) {
 	return{real, imaginary};
 }
 
+// Complex number to pixel mapping
 sf::Vector2f complexToPixel(ComplexNumber complex, double maxReal, double maxImaginary, int screenDiameter) {
 	double x = complex.real * ((screenDiameter / 2.0))/maxReal;
 	double y = complex.imaginary * ((screenDiameter / 2.0))/maxImaginary;
@@ -94,20 +96,22 @@ sf::Vector2f complexToPixel(ComplexNumber complex, double maxReal, double maxIma
 	return sf::Vector2f((float)x, (float)y);
 }
 
+// Main
 int main() {
+	// Store coefficients ---------------------------------------------------------------------------------------
+	std::vector<ComplexNumber> coefficients = {
+		ComplexNumber(2.0, 0.0),
+		ComplexNumber(4.0, 0.0),
+		ComplexNumber(3.0, 0.0)
+	};
+
 	sf::RenderWindow window;
 
-	int screenDiameter = 500;
+	int screenDiameter = 700;
 	window.create(sf::VideoMode(screenDiameter*2, screenDiameter*2), "Polynomial visualision");
 	window.setFramerateLimit(30);
 	sf::Image image;
 	image.create(screenDiameter, screenDiameter, sf::Color::Black);
-
-	ComplexNumber a(0, 0);
-	ComplexNumber b(0, 0);
-	ComplexNumber c(0, 0);
-	ComplexNumber d(0, 0);
-	ComplexNumber e(0, 0);
 
 
 	while (window.isOpen()){
@@ -118,46 +122,13 @@ int main() {
 			}
 		}
 
-		double changeSpeed = 0.1f;
-
-		ComplexNumber arrowDirection(0.0, 0.0);
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
-			arrowDirection.real = -changeSpeed;
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
-			arrowDirection.real = changeSpeed;
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
-			arrowDirection.imaginary = -changeSpeed;
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
-			arrowDirection.imaginary = changeSpeed;
-		}
-
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
-			a = a + arrowDirection;
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::B)) {
-			b = b + arrowDirection;
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::C)) {
-			c = c + arrowDirection;
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
-			d = d + arrowDirection;
-		}
-
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
-			e = e + arrowDirection;
-		}
-
 		#pragma omp parallel for collapse(2)
 		for (int x = 0; x < screenDiameter; x++) {
 			for (int y = 0; y < screenDiameter; y++) {
 
 				ComplexNumber input = pixelToComplex(x, y, screenDiameter, screenDiameter);
 
-				ComplexNumber result = Polynomial(input, a, b, c, d, e);
+				ComplexNumber result = Polynomial(input, coefficients);
 				// ComplexNumber result = input^0.5;
 
 				double distance = hypot(result.real, result.imaginary);
@@ -165,8 +136,9 @@ int main() {
 
 				double brightnessDecay = 10.0;
 				double globalBrightness = 0.1;
-				double closeToZeroValue = 1.0/distance + globalBrightness + (brightnessDecay * globalBrightness)/(hypot(result.real, result.imaginary)+brightnessDecay);
-				image.setPixel(x, y, hsv(angle, 1.0, closeToZeroValue));
+				double closeToZeroValue;
+				closeToZeroValue = 2.0/distance + globalBrightness + (brightnessDecay * globalBrightness)/(hypot(result.real, result.imaginary)+brightnessDecay);
+				image.setPixel(x, y, hsv((angle+M_PI) * (0.5/M_PI), 1.0, closeToZeroValue));
 			}
 		}
 
@@ -177,29 +149,15 @@ int main() {
 
 		window.clear();
 		window.draw(sprite);
-		sf::CircleShape dotA(5);
-		sf::CircleShape dotB(5);
-		sf::CircleShape dotC(5);
-		sf::CircleShape dotD(5);
-		sf::CircleShape dotE(5);
 
-		dotA.setFillColor(sf::Color::Red);
-		dotB.setFillColor(sf::Color::Yellow);
-		dotC.setFillColor(sf::Color::Green);
-		dotD.setFillColor(sf::Color::Blue);
-		dotE.setFillColor(sf::Color::Magenta);
-
-		dotA.setPosition(complexToPixel(a, 10.0, 10.0, screenDiameter));
-		dotB.setPosition(complexToPixel(b, 10.0, 10.0, screenDiameter));
-		dotC.setPosition(complexToPixel(c, 10.0, 10.0, screenDiameter));
-		dotD.setPosition(complexToPixel(d, 10.0, 10.0, screenDiameter));
-		dotE.setPosition(complexToPixel(e, 10.0, 10.0, screenDiameter));
-
-		window.draw(dotA);
-		window.draw(dotB);
-		window.draw(dotC);
-		window.draw(dotD);
-		window.draw(dotE);
+		// Draw all coefficient dots
+		for (int i = 0; i < coefficients.size(); i++) {
+			sf::CircleShape dot(5);
+			double hue = (double)i / (double)coefficients.size();
+			dot.setFillColor(hsv(hue, 1.0, 1.0));
+			dot.setPosition(complexToPixel(coefficients.at(i), 10.0, 10.0, screenDiameter));
+			window.draw(dot);
+		}
 
 		window.display();
 	}
