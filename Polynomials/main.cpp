@@ -3,6 +3,7 @@
 #include <vector>
 #include <iostream>
 #include <omp.h>
+#include <string>
 
 // hsv to rgb
 sf::Color hsv(double hue_double, float sat, float val)
@@ -78,11 +79,11 @@ ComplexNumber Polynomial(ComplexNumber input, std::vector<ComplexNumber>& coeffi
 }
 
 // Pixel to complex number mapping
-ComplexNumber pixelToComplex(int x, int y, int maxX, int maxY) {
+ComplexNumber pixelToComplex(int x, int y, int maxX, int maxY, double maxReal, double maxImaginary) {
 	double real = x - maxX / 2.0;
 	double imaginary = y - maxY / 2.0;
-	real /= ((maxX / 2.0)) / 10.0;
-	imaginary /= ((maxY / 2.0)) / 10.0;
+	real /= ((maxX / 2.0)) / maxReal;
+	imaginary /= ((maxY / 2.0)) / maxImaginary;
 
 	return{real, imaginary};
 }
@@ -96,22 +97,34 @@ sf::Vector2f complexToPixel(ComplexNumber complex, double maxReal, double maxIma
 	return sf::Vector2f((float)x, (float)y);
 }
 
+
 // Main
 int main() {
 	// Store coefficients ---------------------------------------------------------------------------------------
 	std::vector<ComplexNumber> coefficients = {
-		ComplexNumber(2.0, 0.0),
-		ComplexNumber(4.0, 0.0),
-		ComplexNumber(3.0, 0.0)
+		ComplexNumber(0.0, 0.0),
+		ComplexNumber(0.0, 0.0),
+		ComplexNumber(0.0, 0.0),
+		ComplexNumber(0.0, 0.0),
+		ComplexNumber(0.0, 0.0),
+		ComplexNumber(0.0, 0.0),
+		ComplexNumber(0.0, 0.0),
+		ComplexNumber(0.0, 0.0),
+		ComplexNumber(0.0, 0.0),
+
 	};
+
 
 	sf::RenderWindow window;
 
-	int screenDiameter = 700;
-	window.create(sf::VideoMode(screenDiameter*2, screenDiameter*2), "Polynomial visualision");
+	int screenDiameter = 400;
+	window.create(sf::VideoMode(screenDiameter*3, screenDiameter*3), "Polynomial visualision");
 	window.setFramerateLimit(30);
 	sf::Image image;
 	image.create(screenDiameter, screenDiameter, sf::Color::Black);
+
+	ComplexNumber coefficient1(-50.0, 0.0);
+	ComplexNumber coefficient2(50.0, 0.0);
 
 
 	while (window.isOpen()){
@@ -126,38 +139,50 @@ int main() {
 		for (int x = 0; x < screenDiameter; x++) {
 			for (int y = 0; y < screenDiameter; y++) {
 
-				ComplexNumber input = pixelToComplex(x, y, screenDiameter, screenDiameter);
+				ComplexNumber input = pixelToComplex(x, y, screenDiameter, screenDiameter, 3.0, 3.0);
+				double closeToZeroValue = 0.0;
 
-				ComplexNumber result = Polynomial(input, coefficients);
-				// ComplexNumber result = input^0.5;
+				for (int i = 0; i < pow(2.0, (double)coefficients.size()); i++) {
 
-				double distance = hypot(result.real, result.imaginary);
-				double angle = atan2(result.imaginary, result.real);
+					int bits[16];
 
-				double brightnessDecay = 10.0;
-				double globalBrightness = 0.1;
-				double closeToZeroValue;
-				closeToZeroValue = 2.0/distance + globalBrightness + (brightnessDecay * globalBrightness)/(hypot(result.real, result.imaginary)+brightnessDecay);
-				image.setPixel(x, y, hsv((angle+M_PI) * (0.5/M_PI), 1.0, closeToZeroValue));
+					std::vector<ComplexNumber> current = coefficients;
+
+					for (int c = 0; c < current.size(); ++c) {
+						int bit = (i >> c) & 1;
+						current[c] = bit ? coefficient1 : coefficient2;
+					}
+
+					ComplexNumber result = Polynomial(input, current);
+					// ComplexNumber result = input^0.5;
+
+					double distance = hypot(result.real, result.imaginary);
+					double angle = atan2(result.imaginary, result.real);
+
+					double sigma = 1.3;   // controls dot size
+					double intensity = exp(-(distance*distance) / (2*sigma*sigma));
+					closeToZeroValue += intensity;
+				} 
+				image.setPixel(x, y, hsv(0.0, 0.0, closeToZeroValue));
 			}
 		}
 
 		sf::Texture texture;
 		texture.loadFromImage(image);
 		sf::Sprite sprite(texture);
-		sprite.setScale(2.0, 2.0);
+		sprite.setScale(3.0, 3.0);
 
 		window.clear();
 		window.draw(sprite);
 
 		// Draw all coefficient dots
-		for (int i = 0; i < coefficients.size(); i++) {
-			sf::CircleShape dot(5);
-			double hue = (double)i / (double)coefficients.size();
-			dot.setFillColor(hsv(hue, 1.0, 1.0));
-			dot.setPosition(complexToPixel(coefficients.at(i), 10.0, 10.0, screenDiameter));
-			window.draw(dot);
-		}
+		// for (int i = 0; i < coefficients.size(); i++) {
+		// 	sf::CircleShape dot(5);
+		// 	double hue = (double)i / (double)coefficients.size();
+		// 	dot.setFillColor(hsv(hue, 1.0, 1.0));
+		// 	dot.setPosition(complexToPixel(coefficients.at(i), 3.0, 3.0, screenDiameter));
+		// 	window.draw(dot);
+		// }
 
 		window.display();
 	}
