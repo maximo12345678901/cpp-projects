@@ -1,18 +1,15 @@
 #version 330 core
 
-uniform vec2 u_coeff1;       // (-50, 0)
-uniform vec2 u_coeff2;       // (50, 0)
-uniform int  u_degree;       // coefficients.size()
-uniform float u_sigma;       // Gaussian size
-uniform float u_maxReal;     // 3.0
-uniform float u_maxImag;     // 3.0
-uniform vec2 u_resolution;   // (screenDiameter, screenDiameter)
+uniform vec2 u_coeff1;
+uniform vec2 u_coeff2;
+uniform int  u_degree;
+uniform float u_sigma;
+uniform float u_maxReal;
+uniform float u_maxImag;
+uniform vec2 u_resolution;
 
 out vec4 fragColor;
 
-//
-// Complex helpers
-//
 vec2 c_add(vec2 a, vec2 b) {
     return a + b;
 }
@@ -21,6 +18,13 @@ vec2 c_mul(vec2 a, vec2 b) {
     return vec2(
         a.x*b.x - a.y*b.y,
         a.x*b.y + a.y*b.x
+    );
+}
+vec2 c_div(vec2 a, vec2 b) {
+    float denom = b.x*b.x + b.y*b.y;
+    return vec2(
+        (a.x*b.x + a.y*b.y) / denom,
+        (a.y*b.x - a.x*b.y) / denom
     );
 }
 
@@ -50,8 +54,31 @@ vec2 polynomial(vec2 z, int mask) {
         zpow = c_mul(zpow, z);
     }
 
-    return sum * 10.0;
+    return sum;
 }
+
+vec2 polynomial_derivative(vec2 z, int mask) {
+    vec2 sum = vec2(0.0);
+
+    vec2 zpow = vec2(1.0, 0.0);   // z^0
+
+    // We will use zpow = z^(i-1)
+    for (int i = 1; i < 32; i++) {
+        if (i >= u_degree) break;
+
+        int bit = (mask >> i) & 1;
+        vec2 coeff = (bit == 1) ? u_coeff1 : u_coeff2;
+
+        // derivative term = i * coeff * z^(i-1)
+        sum += c_mul(coeff * float(i), zpow);
+
+        // next z^(i)
+        zpow = c_mul(zpow, z);
+    }
+
+    return sum;
+}
+
 
 
 void main() {
@@ -66,9 +93,13 @@ void main() {
     int total = 1 << u_degree;
 
     for (int i = 0; i < total; i++) {
-        vec2 r = polynomial(z, i);
-        float dist = length(r);
-        float intensity = exp(-(dist*dist) / (2.0*u_sigma*u_sigma));
+        vec2 value = polynomial(z, i);
+        vec2 value_deriv = polynomial_derivative(z, i);
+
+        float dist = length(c_div(value, value_deriv));
+        float radius = u_sigma;    // fixed dot size
+        float intensity = dist < radius ? 1.0 : 0.0;
+
         sumIntensity += intensity;
     }
 
