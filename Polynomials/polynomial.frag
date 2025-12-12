@@ -10,6 +10,56 @@ uniform vec2 u_resolution;
 
 out vec4 fragColor;
 
+vec4 hsv_to_rgb(vec3 color) {
+    // Translates HSV color to RGB color
+    // H: 0.0 - 360.0, S: 0.0 - 100.0, V: 0.0 - 100.0
+    // R, G, B: 0.0 - 1.0
+
+    float hue = color.x;
+    float saturation = color.y;
+    float value = color.z;
+
+    float c = (value/100) * (saturation/100);
+    float x = c * (1 - abs(mod(hue/60, 2) - 1));
+    float m = (value/100) - c;
+
+    float r = 0;
+    float g = 0;
+    float b = 0;
+    
+    if (hue >= 0 && hue < 60) {
+        r = c;
+        g = x;
+        b = 0;
+    } else if (hue >= 60 && hue < 120) {
+        r = x;
+        g = c;
+        b = 0;
+    } else if (hue >= 120 && hue < 180) {
+        r = 0;
+        g = c;
+        b = x;
+    } else if (hue >= 180 && hue < 240) {
+        r = 0;
+        g = x;
+        b = c;
+    } else if (hue >= 240 && hue < 300) {
+        r = x;
+        g = 0;
+        b = c;
+    } else if (hue >= 300 && hue < 360) {
+        r = c;
+        g = 0;
+        b = x;
+    }
+
+    r += m;
+    g += m;
+    b += m;
+
+    return vec4(r, g, b, 1.0);
+}
+
 vec2 c_add(vec2 a, vec2 b) {
     return a + b;
 }
@@ -88,7 +138,7 @@ void main() {
     float imag = (uv.y - u_resolution.y/2.0) / ((u_resolution.y/2.0)/u_maxImag);
     vec2 z = vec2(real, imag);
 
-    float sumIntensity = 0.0;
+    bool isPoint = false;
 
     int total = 1 << u_degree;
 
@@ -98,13 +148,15 @@ void main() {
 
         float dist = length(c_div(value, value_deriv));
         float radius = u_sigma;    // fixed dot size
-        float intensity = dist < radius ? 1.0 : 0.0;
+        if (dist < radius) {
+            isPoint = true;
 
-        sumIntensity += intensity;
+            vec4 color = hsv_to_rgb(vec3(360 * float(i) / float(total), 100.0, 100.0)); ////// THIS IS THE LINE WITH THE ERROR MISTER GPT
+            fragColor = color;
+        }
     }
 
-    // Clamp to prevent blowout
-    float v = clamp(sumIntensity, 0.0, 1.0);
-
-    fragColor = vec4(v, v, v, 1.0);
+    if (!isPoint) {
+        fragColor = vec4(0.0);
+    }
 }

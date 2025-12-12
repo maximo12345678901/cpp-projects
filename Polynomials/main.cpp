@@ -3,30 +3,28 @@
 
 int main() {
 
-    int screenDiameter = 1000;
+    int screenDiameter = 1200;
 
     sf::RenderWindow window(
         sf::VideoMode(screenDiameter, screenDiameter),
-        "polynomial visualisation"
+        "polenomal visualison"
     );
-    window.setFramerateLimit(60);
+    window.setFramerateLimit(1);
 
-    // Load shader
     sf::Shader shader;
     if (!shader.loadFromFile("polynomial.frag", sf::Shader::Fragment)) {
-        std::cout << "Failed to load shader!\n";
+        std::cout << "failed to load hsader\n";
         return -1;
     }
 
-    // Fullscreen quad for shader rendering
     sf::RectangleShape quad(sf::Vector2f((float)screenDiameter, (float)screenDiameter));
-    // quad.setScale(2.0f, 2.0f);  // scale to fill the window
+    // quad.setScale(1.0f, 2.0f);
 
-    int degree = 13;  // number of coefficients
-    float dotRadius = 0.003f;
+    int degree = 12;
+    float dotRadius = 0.005f;
 
-    shader.setUniform("u_coeff1", sf::Glsl::Vec2(1.0f, -2.f));
-    shader.setUniform("u_coeff2", sf::Glsl::Vec2(0.0f, 2.f));
+    shader.setUniform("u_coeff1", sf::Glsl::Vec2(0.5f, 1.0f));
+    shader.setUniform("u_coeff2", sf::Glsl::Vec2(-0.1f, -2.0f));
 
     shader.setUniform("u_degree", degree);
     shader.setUniform("u_sigma", dotRadius);
