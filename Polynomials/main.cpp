@@ -24,7 +24,7 @@ int main() {
     float dotRadius = 0.005f;
 
     shader.setUniform("u_coeff1", sf::Glsl::Vec2(0.5f, 1.0f));
-    shader.setUniform("u_coeff2", sf::Glsl::Vec2(-0.1f, -2.0f));
+    shader.setUniform("u_coeff2", sf::Glsl::Vec2(-0.1f, -2.w0f));
 
     shader.setUniform("u_degree", degree);
     shader.setUniform("u_sigma", dotRadius);
