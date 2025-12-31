@@ -32,8 +32,10 @@ int main() {
     const unsigned HEIGHT = 900;
     bool controlling = true;
 
+    float resolutionDownScale = 2;
+
     // Create the window
-    sf::RenderWindow window(sf::VideoMode(WIDTH, HEIGHT), "Raymarching Demo");
+    sf::RenderWindow window(sf::VideoMode(WIDTH, HEIGHT), "raymarcing");
     window.setPosition(sf::Vector2i(10, 10));
     window.setMouseCursorGrabbed(true);
     window.setMouseCursorVisible(false);
@@ -46,8 +48,9 @@ int main() {
     }
 
     // Screen quad to render shader on
-    sf::RectangleShape screenQuad(sf::Vector2f(WIDTH, HEIGHT));
+    sf::RectangleShape screenQuad(sf::Vector2f(WIDTH / resolutionDownScale, HEIGHT / resolutionDownScale));
     screenQuad.setPosition(0, 0);
+    screenQuad.setScale(sf::Vector2f(resolutionDownScale, resolutionDownScale));
 
     // Camera setup
     Camera cam;

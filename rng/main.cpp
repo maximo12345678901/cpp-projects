@@ -11,7 +11,8 @@ int main() {
     window.setFramerateLimit(20);
 
     sf::Image image;
-    image.create(200, 200);
+    int mapSize = 100;
+    image.create(mapSize, mapSize);
     sf::Texture texture;
     sf::Sprite sprite;
 
@@ -49,8 +50,8 @@ int main() {
 
         float lastValue = std::fmod(seed * factor + a, cap);
 
-        for (int x = 0; x < 200; x++) {
-            for (int y = 0; y < 200; y++) {
+        for (int x = 0; x < mapSize; x++) {
+            for (int y = 0; y < mapSize; y++) {
                 sf::Uint8 c = static_cast<sf::Uint8>((lastValue / cap) * 255.f);
                 image.setPixel(x, y, sf::Color(c, c, c));
                 lastValue = std::fmod(lastValue * factor + a, cap);
@@ -59,7 +60,8 @@ int main() {
 
         texture.loadFromImage(image);
         sprite.setTexture(texture);
-        sprite.setScale(5.0, 5.0);
+        float scaleFactor = 1000.0 / (float) mapSize;
+        sprite.setScale(scaleFactor, scaleFactor);
         window.clear();
         window.draw(sprite);
         window.display();

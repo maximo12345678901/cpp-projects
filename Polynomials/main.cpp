@@ -20,11 +20,11 @@ int main() {
     sf::RectangleShape quad(sf::Vector2f((float)screenDiameter, (float)screenDiameter));
     // quad.setScale(1.0f, 2.0f);
 
-    int degree = 12;
-    float dotRadius = 0.005f;
+    int degree = 13;
+    float dotRadius = 0.006f;
 
-    shader.setUniform("u_coeff1", sf::Glsl::Vec2(0.5f, 1.0f));
-    shader.setUniform("u_coeff2", sf::Glsl::Vec2(-0.1f, -2.w0f));
+    shader.setUniform("u_coeff1", sf::Glsl::Vec2(1.8f, 1.0f));
+    shader.setUniform("u_coeff2", sf::Glsl::Vec2(-1.3f, 0.0f));
 
     shader.setUniform("u_degree", degree);
     shader.setUniform("u_sigma", dotRadius);
