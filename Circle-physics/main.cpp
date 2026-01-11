@@ -110,7 +110,9 @@ int main() {
                     
                     float radiiSum = circle.radius + otherCircle.radius;
                     if (distance < radiiSum){
-                        circle.velocity = reflect(-circle.velocity, direction);
+                        sf::Vector2f relativeVelocity = otherCircle.velocity - circle.velocity;
+                        sf::Vector2f otherCircleRelativeVelocity = circle.velocity - otherCircle.velocity;
+
                         float goBackDistance = (radiiSum - distance) / 2.0f;
                         otherCircle.position += direction * goBackDistance;
                         circle.position -= direction * goBackDistance;

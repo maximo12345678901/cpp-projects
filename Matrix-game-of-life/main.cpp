@@ -31,7 +31,7 @@ sf::Color hueToColor(int hue)
 
 
 int main() {
-    int screenSize = 2000;
+    int screenSize = 1000;
     int simulationSize = 50;
 
     int oldCellStates[simulationSize][simulationSize];
@@ -47,7 +47,7 @@ int main() {
         sf::VideoMode(screenSize, screenSize),
         "Matrex leif"
     );
-    window.setFramerateLimit(10);
+    window.setFramerateLimit(1);
 
 
     sf::Image image;

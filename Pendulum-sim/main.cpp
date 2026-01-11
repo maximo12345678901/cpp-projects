@@ -71,6 +71,10 @@ sf::Color getHueSquareColor(float x, float y, float width, float height) {
     return hsvToRgb(hue * 360.f, saturation, value);
 }
 
+float mapAngleToScreen(double angle, float size) {
+    return (angle + M_PI) / (2.0 * M_PI) * size;
+}
+
 double angularAccel1(float l1, float l2,
                     double m1, double m2,
                     double th1, double th2,
@@ -168,10 +172,10 @@ class Pendulum {
             w2  += dt/6.0 * (k1.dw2  + 2*k2.dw2  + 2*k3.dw2  + k4.dw2);
 
             // Update positions
-            firstDotPos = sf::Vector2f(origin.x + cos(th1 + (M_PI / 2)) * l1,
-                                    origin.y + sin(th1 + (M_PI / 2)) * l1);
-            secondDotPos = sf::Vector2f(firstDotPos.x + l2 * cos(th2 + (M_PI / 2)),
-                                        firstDotPos.y + l2 * sin(th2 + (M_PI / 2)));
+            firstDotPos = sf::Vector2f(origin.x + cos(th1 + (M_PI / 2)) * l1 * 100.0f,
+                                    origin.y + sin(th1 + (M_PI / 2)) * l1 * 100.0f);
+            secondDotPos = sf::Vector2f(firstDotPos.x + l2 * cos(th2 + (M_PI / 2)) * 100.0f,
+                                        firstDotPos.y + l2 * sin(th2 + (M_PI / 2)) * 100.0f);
         }
 
         void DrawPendulum(sf::RenderWindow& window) {
@@ -216,8 +220,8 @@ class Pendulum {
 
         Pendulum() { // Constructor
             dt = 0.002;
-            l1 = 200;
-            l2 = 200;
+            l1 = 2;
+            l2 = 2;
             m1 = 1;
             m2 = 1;
 
@@ -274,7 +278,7 @@ int main() {
     unsigned int originalColorMapWidth  = originalColorMap.getSize().x;
     unsigned int originalColorMapHeight = originalColorMap.getSize().y;
 
-    int resolution = 10;
+    int resolution = 1000;
     sf::Image currentColorMap;
     currentColorMap.create(originalColorMapWidth, originalColorMapHeight);
 
@@ -292,6 +296,7 @@ int main() {
         mapWindow.create(sf::VideoMode(1000, 1000), "Map");
 
         mapWindow.setPosition(sf::Vector2i(100, 200));
+        mapWindow.setFramerateLimit(60);
 
         for (unsigned int y = 0; y < originalColorMapHeight; ++y) {
             for (unsigned int x = 0; x < originalColorMapWidth; ++x) {
@@ -305,6 +310,8 @@ int main() {
         for (int i = 0; i < resolution; ++i) {
             for (int j = 0; j < resolution; ++j) {
                 Pendulum pendulum;
+                pendulum.l1 = 2;
+                pendulum.l2 = 2;
 
                 float normX = ((float)i / (resolution - 1)) * 2 * M_PI - M_PI;
                 float normY = ((float)j / (resolution - 1)) * 2 * M_PI - M_PI;
@@ -325,8 +332,8 @@ int main() {
     int fpsCounter = 0;
 
 
-    // Declare some variables relating to the pendula
-    double G = 10000;
+    // Declare some variables relating to the pendulums
+    double G = 100;
     double dt = 0.002;
 
     Pendulum pendulum;
@@ -347,7 +354,8 @@ int main() {
         // pendulum.th2 = ((float) 720 / (resolution - 1)) * 2 * M_PI - M_PI;
         pendulum.th1 = firstAngle;
         pendulum.th2 = secondAngle;
-    
+    }
+
     // loop
     while (running) {
         sf::Event event;
@@ -376,7 +384,6 @@ int main() {
 
 
             // // Update graph window
-            float scale = 200; // radians per pixel
             int pointSize = 2;
             
             graphWindow.clear(sf::Color(0, 0, 0));
@@ -385,7 +392,13 @@ int main() {
             graphPoint.setFillColor(sf::Color(255, 255, 255));
             graphPoint.setOrigin(pointSize, pointSize);
 
-            graphPoint.setPosition(pendulum.th1 * scale + 500, pendulum.th2 * scale + 500);
+            double th1Wrapped = wrap(-M_PI, M_PI, pendulum.th1);
+            double th2Wrapped = wrap(-M_PI, M_PI, pendulum.th2);
+
+            float x = mapAngleToScreen(th1Wrapped, graphWindow.getSize().x);
+            float y = mapAngleToScreen(-th2Wrapped, graphWindow.getSize().y); // invert Y
+
+            graphPoint.setPosition(x, y);
 
             graphTrail.push_back(graphPoint);
 
@@ -394,12 +407,11 @@ int main() {
                 graphTrail.erase(graphTrail.begin());
             }
 
-            // Center all points so that the most recent one is in the middle
             for (sf::CircleShape point : graphTrail) {
-                sf::Vector2f newPosition;
-                newPosition.x = point.getPosition().x - graphTrail.back().getPosition().x + graphWindow.getSize().x / 2;
-                newPosition.y = point.getPosition().y - graphTrail.back().getPosition().y + graphWindow.getSize().y / 2;
-                point.setPosition(newPosition);
+                // sf::Vector2f newPosition;
+                // newPosition.x = point.getPosition().x - graphTrail.back().getPosition().x + graphWindow.getSize().x / 2;
+                // newPosition.y = point.getPosition().y - graphTrail.back().getPosition().y + graphWindow.getSize().y / 2;
+                // point.setPosition(newPosition);
                 graphWindow.draw(point);
             }
             pendulum.UpdatePendulumRK4(G, dt);
@@ -419,12 +431,12 @@ int main() {
                     float th2 = wrap(-M_PI, M_PI, pendulums.at(x).at(y).th2);
 
                     int srcX = (int)((th1 + M_PI) / (2 * M_PI) * (originalColorMapWidth  - 1));
-                    int srcY = (int)((th2 + M_PI) / (2 * M_PI) * (originalColorMapHeight - 1));
+                    int srcY = (int)(((-th2) + M_PI) / (2 * M_PI) * (originalColorMapHeight - 1));
 
                     int dstX = x * originalColorMapWidth  / resolution;
-                    int dstY = y * originalColorMapHeight / resolution;
+                    int dstY = (resolution - 1 - y) * originalColorMapHeight / resolution;
 
-                    sf::Color c = originalColorValues.at(srcY).at(srcX); 
+                    sf::Color c = originalColorValues.at(srcY).at(srcX);
                     int fill = std::ceil(1000 / resolution);
                     for (int i = 0; i < fill; ++i) {
                         for (int j = 0; j < fill; ++j) {
@@ -473,8 +485,5 @@ int main() {
                 clock.restart();
             }
         }
-
-
     }
-}
 }
