@@ -8,10 +8,6 @@
 #include <random>
 #include <omp.h>
 
-inline int idx(int x, int y, int w) {
-    return y * w + x;
-}
-
 inline void setCellColor(sf::VertexArray& va, int x, int y, int width, int cellSize, sf::Color color) {
     int i = (y * width + x) * 4;
     sf::Vector2f pos(x * cellSize, y * cellSize);
@@ -27,7 +23,7 @@ inline void setCellColor(sf::VertexArray& va, int x, int y, int width, int cellS
     va[i + 3].color = color;
 }
 
-void Draw(std::vector<int>& cells, const sf::Vector2i& pos, int radius,
+void Draw(std::vector<std::vector<int>>& cells, const sf::Vector2i& pos, int radius,
           int state, int width, int height) {
     const int xmin = std::max(0, pos.x - radius);
     const int xmax = std::min(width - 1, pos.x + radius);
@@ -36,7 +32,7 @@ void Draw(std::vector<int>& cells, const sf::Vector2i& pos, int radius,
 
     for (int x = xmin; x <= xmax; ++x)
         for (int y = ymin; y <= ymax; ++y)
-            cells[idx(x, y, width)] = state;
+            cells[x][y] = state;
 }
 
 struct Rule {
@@ -47,18 +43,26 @@ struct Rule {
 };
 
 void readRules(std::vector<Rule>& rules, std::mt19937& gen) {
-    while (true) {
-        std::string input;
-        std::cin >> input;
+    std::string line;
 
-        if (input == "break") {
+    // Clear leftover newline if needed
+    std::getline(std::cin, line);
+
+    while (true) {
+        std::getline(std::cin, line);
+
+        if (!std::cin) break;          // EOF
+        if (line.empty()) continue;    // skip empty lines
+
+        if (line == "break") {
             break;
         }
 
-        if (input == "random") {
+        if (line == "random") {
             int amountOfRules;
             std::cout << "how many? ";
             std::cin >> amountOfRules;
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
             std::uniform_int_distribution<> dist0_4(0, 4);
             std::uniform_int_distribution<> dist0_8(0, 8);
@@ -73,30 +77,35 @@ void readRules(std::vector<Rule>& rules, std::mt19937& gen) {
                 int thirdDigit = dist0_8(gen);
                 int fourthDigit = dist0_4(gen);
 
-                Rule r{firstDigit, secondDigit, thirdDigit, fourthDigit};
-                std::cout << r.currentState << r.nextState
-                          << r.requiredNeighbors << r.neighborType << "\n";
+                rules.push_back({firstDigit, secondDigit, thirdDigit, fourthDigit});
 
-                rules.push_back(r);
+                std::cout << firstDigit << secondDigit << thirdDigit << fourthDigit << "\n";
             }
-            break;
+            continue;
         }
 
-        if (input.size() != 4) {
-            std::cerr << "Error: input must be exactly 4 characters long.\n";
+        if (line == "clear") {
+            rules.clear();
+            std::cout << "cleared \n";
+            continue;
+        }
+
+        if (line.size() != 4) {
+            std::cerr << "Error: each rule must be exactly 4 digits\n";
             continue;
         }
 
         Rule r{
-            input[0] - '0', // current
-            input[1] - '0', // next
-            input[2] - '0', // neighbors
-            input[3] - '0'  // neighbor type
+            line[0] - '0',
+            line[1] - '0',
+            line[2] - '0',
+            line[3] - '0'
         };
 
         rules.push_back(r);
     }
 }
+
 
 int main() {
     int width, height, cellSize;
@@ -106,30 +115,23 @@ int main() {
 
     std::vector<Rule> rules;
 
-    std::cout << "Enter the width of the map: ";
+    std::cout << "width: ";
     std::cin >> width;
 
-    std::cout << "Enter the height of the map: ";
+    std::cout << "height: ";
     std::cin >> height;
 
-    std::cout << "Enter the pixel size of each cell: ";
+    std::cout << "pixel size: ";
     std::cin >> cellSize;
 
-    std::vector<int> cellStates(width * height, 0);
-    std::vector<int> newStates(width * height, 0);
-
-    std::cout << "Add as many rules as you wish.\n"
-              << "Format: 4 digits (e.g. 0123)\n"
-              << "1st = current cell state\n"
-              << "2nd = next state\n"
-              << "3rd = number of neighbors\n"
-              << "4th = neighbor state\n";
+    std::vector<std::vector<int>> cellStates(width, std::vector<int>(height, 0));
+    std::vector<std::vector<int>> newStates(width, std::vector<int>(height, 0));
 
     readRules(rules, gen);
 
     
     sf::RenderWindow window(
-        sf::VideoMode({width * cellSize, height * cellSize}), "game of life (with a silly twist)");
+        sf::VideoMode({width * cellSize, height * cellSize}), "game of life (with silly twist)");
     window.setFramerateLimit(60);
 
     sf::VertexArray grid(sf::Quads, width * height * 4);
@@ -153,7 +155,6 @@ int main() {
         window.clear(sf::Color::Black);
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
-            rules.clear();
             readRules(rules, gen);
         }
 
@@ -168,6 +169,11 @@ int main() {
         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::P))
             Draw(cellStates, hoveredPixel, 2, 4, width, height);
 
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::C)) {
+            cellStates = std::vector<std::vector<int>>(width, std::vector<int>(height, 0));
+            newStates = std::vector<std::vector<int>>(width, std::vector<int>(height, 0));
+        }
+
         #pragma omp parallel for collapse(2)
         for (int x = 0; x < width; ++x) {
             for (int y = 0; y < height; ++y) {
@@ -181,13 +187,13 @@ int main() {
                         if (nx < 0 || nx >= width || ny < 0 || ny >= height)
                             continue;
 
-                        int s = cellStates[idx(nx, ny, width)];
+                        int s = cellStates[nx][ny];
                         if (s >= 0 && s <= 4)
                             neighborCounts[s]++;
                     }
                 }
 
-                int currentState = cellStates[idx(x, y, width)];
+                int currentState = cellStates[x][y];
                 int newState = currentState;
 
                 // Apply rules
@@ -209,7 +215,7 @@ int main() {
                 }
 
                 setCellColor(grid, x, y, width, cellSize, c);
-                newStates[idx(x, y, width)] = newState;
+                newStates[x][y] = newState;
             }
         }
 

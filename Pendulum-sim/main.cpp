@@ -261,8 +261,8 @@ int main() {
 
     // Set up all of the windows
     if (!doGenerateMap) {
-        simulationWindow.create(sf::VideoMode(1000, 1000), "Pendulum simulation");
-        graphWindow.create(sf::VideoMode(1000, 1000), "Pendulum angle graph");
+        simulationWindow.create(sf::VideoMode(1000, 1000), "pdulum simul");
+        graphWindow.create(sf::VideoMode(1000, 1000), "agel graf");
 
         simulationWindow.setPosition(sf::Vector2i(100, 100));
         graphWindow.setPosition(sf::Vector2i(1200, 100));
@@ -272,13 +272,13 @@ int main() {
 
     // Set up the color map
     sf::Image originalColorMap;
-    if (!originalColorMap.loadFromFile("./better-colormap.png")) {
+    if (!originalColorMap.loadFromFile("./colormap.png")) {
         return 1;
     }
     unsigned int originalColorMapWidth  = originalColorMap.getSize().x;
     unsigned int originalColorMapHeight = originalColorMap.getSize().y;
 
-    int resolution = 1000;
+    int resolution = 500;
     sf::Image currentColorMap;
     currentColorMap.create(originalColorMapWidth, originalColorMapHeight);
 
@@ -293,9 +293,9 @@ int main() {
     std::vector<std::vector<Pendulum>> pendulums(resolution, std::vector<Pendulum>(resolution));
 
     if (doGenerateMap) {
-        mapWindow.create(sf::VideoMode(1000, 1000), "Map");
+        mapWindow.create(sf::VideoMode(1000, 1000), "clormap");
 
-        mapWindow.setPosition(sf::Vector2i(100, 200));
+        // mapWindow.setPosition(sf::Vector2i(200, 400));
         mapWindow.setFramerateLimit(60);
 
         for (unsigned int y = 0; y < originalColorMapHeight; ++y) {
@@ -304,14 +304,14 @@ int main() {
                 currentColorValues.at(y).at(x) = originalColorMap.getPixel(x, y);
             }
         }
-
+	
 
         // Set up all pendulums
         for (int i = 0; i < resolution; ++i) {
             for (int j = 0; j < resolution; ++j) {
                 Pendulum pendulum;
-                pendulum.l1 = 2;
-                pendulum.l2 = 2;
+                pendulum.l1 = 1.9;
+                pendulum.l2 = 0.1;
 
                 float normX = ((float)i / (resolution - 1)) * 2 * M_PI - M_PI;
                 float normY = ((float)j / (resolution - 1)) * 2 * M_PI - M_PI;
