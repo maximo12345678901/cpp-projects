@@ -115,14 +115,16 @@ int main() {
 
     std::vector<Rule> rules;
 
-    std::cout << "width: ";
-    std::cin >> width;
+//    std::cout << "width: ";
+//    std::cin >> width;
+      width = 300;
+      height = 300;
+      cellSize = 3;
+//    std::cout << "height: ";
+//    std::cin >> height;
 
-    std::cout << "height: ";
-    std::cin >> height;
-
-    std::cout << "pixel size: ";
-    std::cin >> cellSize;
+//    std::cout << "pixel size: ";
+//    std::cin >> cellSize;
 
     std::vector<std::vector<int>> cellStates(width, std::vector<int>(height, 0));
     std::vector<std::vector<int>> newStates(width, std::vector<int>(height, 0));

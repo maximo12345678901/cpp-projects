@@ -30,7 +30,7 @@ int main() {
 
     sf::RenderWindow window(sf::VideoMode(windowSize.x, windowSize.y), "Mandelbrot set");
 
-    int maxIterations = 1500;
+    int maxIterations = 2500;
     // std::cout << "Max iterations: ";
     // std::cin >> maxIterations;
 
@@ -44,7 +44,7 @@ int main() {
     // double xCenter = -0.5;
     // double yCenter = 0.0;
 
-    double zoom = 500000000.0;
+    double zoom = 1.0E10;
     double screenRadius = 1.5/zoom;
     double xMin = xCenter - screenRadius;
     double xMax = xCenter + screenRadius;

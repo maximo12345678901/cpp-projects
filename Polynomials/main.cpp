@@ -3,7 +3,7 @@
 
 int main() {
 
-    int screenDiameter = 1200;
+    int screenDiameter = 1000;
 
     sf::RenderWindow window(
         sf::VideoMode(screenDiameter, screenDiameter),

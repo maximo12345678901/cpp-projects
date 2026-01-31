@@ -160,10 +160,10 @@ class Pendulum {
 
             // k4
             auto k4 = derivs(
-                th1 + 0.5*dt*k3.dth1,
-                w1 + 0.5*dt*k3.dw1,
-                th2 + 0.5*dt*k3.dth2,
-                w2 + 0.5*dt*k3.dw2);
+                th1 + dt*k3.dth1,
+                w1 + dt*k3.dw1,
+                th2 + dt*k3.dth2,
+                w2 + dt*k3.dw2);
 
             // Combine
             th1 += dt/6.0 * (k1.dth1 + 2*k2.dth1 + 2*k3.dth1 + k4.dth1);
@@ -310,8 +310,8 @@ int main() {
         for (int i = 0; i < resolution; ++i) {
             for (int j = 0; j < resolution; ++j) {
                 Pendulum pendulum;
-                pendulum.l1 = 1.9;
-                pendulum.l2 = 0.1;
+                pendulum.l1 = -1.0;
+                pendulum.l2 = -1.0;
 
                 float normX = ((float)i / (resolution - 1)) * 2 * M_PI - M_PI;
                 float normY = ((float)j / (resolution - 1)) * 2 * M_PI - M_PI;
@@ -339,6 +339,8 @@ int main() {
     Pendulum pendulum;
     
     std::vector<sf::CircleShape> graphTrail;
+
+    graphTrail.reserve(9999999);
 
     if (!doGenerateMap) {
 
