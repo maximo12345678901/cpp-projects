@@ -7,8 +7,8 @@ sf::Vector2f normalized(sf::Vector2f vec) {
 }
 
 sf::Vector2f vectorFieldVector(float a, float b) {
-	float da = b;
-	float db = -std::sin(a) - (0.5f * b);
+	float da = b; // derivative of the value on the x axis
+	float db = a; // derivative of the value on the y axis
 
 	return sf::Vector2f(da, db);
 }
@@ -44,11 +44,11 @@ sf::Vector2f unitToPixel(sf::Vector2f unitCoord, int screenPixelSize, float scre
 
 int main () {
 	int screenPixelSize = 1000; // Pixel length of the screen
-	float screenUnitSize = 15; // Length of the simulation window in simulation units;
-	sf::RenderWindow window(sf::VideoMode(screenPixelSize, screenPixelSize), "Softbody simulation");
+	float screenUnitSize = 20; // Length of the simulation window in simulation units;
+	sf::RenderWindow window(sf::VideoMode(screenPixelSize, screenPixelSize), "Vector field");
 
 	int pixelsPerUnit = screenPixelSize / screenUnitSize; // ratio of the pixel length and the unit length
-	int vectorPixelDistance = 30; // This value is arbitrary
+	int vectorPixelDistance = 20; // This value is arbitrary
 
 	int vectorAmount = screenPixelSize / vectorPixelDistance;
 
@@ -73,7 +73,7 @@ int main () {
 				sf::Vector2f vector = vectorFieldVector(unitX, unitY); // Sample phase space direction vector from current point
 				// sf::Vector2f drawingVector = normalized(vector); // Normalize for drawing purposes
 
-				float scale = 0.5f;
+				float scale = 0.2f;
 				sf::Vector2f unitOrigin(unitX, unitY);
 				sf::Vector2f unitEnd   (unitX + vector.x * scale, unitY + vector.y * scale);
 
