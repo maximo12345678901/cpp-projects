@@ -7,13 +7,13 @@ sf::Vector2f normalized(sf::Vector2f vec) {
 }
 
 sf::Vector2f vectorFieldVector(float a, float b) {
-	float da = b; // derivative of the value on the x axis
-	float db = a; // derivative of the value on the y axis
+	float da = 1/b; // derivative of the value on the x axis
+	float db = -std::sin(a) - 0.4f * b; // derivative of the value on the y axis
 
 	return sf::Vector2f(da, db);
 }
 
-sf::Vector2f pixelToUnit(sf::Vector2i pixelCoord, int screenPixelSize, float screenUnitSize) {
+sf::Vector2f pixelToWorld(sf::Vector2i pixelCoord, int screenPixelSize, float screenWorldSize) {
 	sf::Vector2f coordinate;
 
 	coordinate.x = pixelCoord.x; // 0  to  pixelSize
@@ -25,14 +25,14 @@ sf::Vector2f pixelToUnit(sf::Vector2i pixelCoord, int screenPixelSize, float scr
 
 	coordinate /= (float) screenPixelSize; // -1/2  to  1/2
 
-	coordinate *= (float) screenUnitSize; // -1/2 unit size  to  1/2 unit size (length of 1 unit size)
+	coordinate *= (float) screenWorldSize; // -1/2 world size  to  1/2 world size (length of 1 world size)
 	return coordinate;
 }
 
-sf::Vector2f unitToPixel(sf::Vector2f unitCoord, int screenPixelSize, float screenUnitSize) {
-	sf::Vector2f coordinate = unitCoord; // -1/2 unit size  to  1/2 unit size (length of 1 unit size)
+sf::Vector2f worldToPixel(sf::Vector2f worldCoord, int screenPixelSize, float screenWorldSize) {
+	sf::Vector2f coordinate = worldCoord; // -1/2 world size  to  1/2 world size (length of 1 world size)
 
-	coordinate /= (float) screenUnitSize; // -1/2  to  1/2
+	coordinate /= (float) screenWorldSize; // -1/2  to  1/2
 
 	coordinate *= (float) screenPixelSize; // -1/2 pixel size  to  1/2 pixel size
 	
@@ -42,12 +42,72 @@ sf::Vector2f unitToPixel(sf::Vector2f unitCoord, int screenPixelSize, float scre
 	return coordinate;
 }
 
+float logNormalize(float v, float vMin, float vMax)
+{
+    v = std::max(v, vMin); // avoid log(0)
+
+    float logMin = std::log(vMin);
+    float logMax = std::log(vMax);
+    float logV   = std::log(v);
+
+    return (logV - logMin) / (logMax - logMin); // [0,1]
+}
+
+sf::Color lerpColor(const sf::Color& a, const sf::Color& b, float t)
+{
+    t = std::clamp(t, 0.f, 1.f);
+
+    return sf::Color(
+        static_cast<sf::Uint8>(a.r + t * (b.r - a.r)),
+        static_cast<sf::Uint8>(a.g + t * (b.g - a.g)),
+        static_cast<sf::Uint8>(a.b + t * (b.b - a.b))
+    );
+}
+
+sf::Color blueCyanYellowRed(float t)
+{
+    t = std::clamp(t, 0.f, 1.f);
+
+    const sf::Color blue   (  0,   0, 255);
+    const sf::Color cyan   (  0, 255, 255);
+    const sf::Color yellow (255, 255,   0);
+    const sf::Color red    (255,   0,   0);
+
+    if (t < 1.f / 3.f) {
+        // Blue → Cyan
+        float localT = t * 3.f;
+        return lerpColor(blue, cyan, localT);
+    }
+    else if (t < 2.f / 3.f) {
+        // Cyan → Yellow
+        float localT = (t - 1.f / 3.f) * 3.f;
+        return lerpColor(cyan, yellow, localT);
+    }
+    else {
+        // Yellow → Red
+        float localT = (t - 2.f / 3.f) * 3.f;
+        return lerpColor(yellow, red, localT);
+    }
+}
+
+sf::Color logBlueCyanYellowRed(float value, float minValue, float maxValue)
+{
+    value = std::max(value, minValue);
+
+    float logMin = std::log(minValue);
+    float logMax = std::log(maxValue);
+    float logV   = std::log(value);
+
+    float t = (logV - logMin) / (logMax - logMin);
+    return blueCyanYellowRed(t);
+}
+
 int main () {
 	int screenPixelSize = 1000; // Pixel length of the screen
-	float screenUnitSize = 20; // Length of the simulation window in simulation units;
-	sf::RenderWindow window(sf::VideoMode(screenPixelSize, screenPixelSize), "Vector field");
+	float screenWorldSize = 10; // Length of the simulation window in world units;
+	sf::RenderWindow window(sf::VideoMode(screenPixelSize, screenPixelSize), "vcetor fild");
 
-	int pixelsPerUnit = screenPixelSize / screenUnitSize; // ratio of the pixel length and the unit length
+	int pixelsPerWorld = screenPixelSize / screenWorldSize; // ratio of the pixel length and the world length
 	int vectorPixelDistance = 20; // This value is arbitrary
 
 	int vectorAmount = screenPixelSize / vectorPixelDistance;
@@ -57,30 +117,37 @@ int main () {
 
 		for (int i = 0; i < vectorAmount; i++) {
 			for (int j = 0; j < vectorAmount; j++) {
-				float unitX = (float)i; // 0  to  vectorAmount
-				float unitY = (float)j;
+				float worldX = (float)i; // 0  to  vectorAmount
+				float worldY = (float)j;
 
-				unitX /= (float)vectorAmount; // 0  to  1
-				unitY /= (float)vectorAmount;
+				worldX /= (float)vectorAmount; // 0  to  1
+				worldY /= (float)vectorAmount;
 
-				unitX *= screenUnitSize; // 0  to  unit size
-				unitY *= screenUnitSize;
+				worldX *= screenWorldSize; // 0  to  world size
+				worldY *= screenWorldSize;
 
-				unitX -= screenUnitSize/2.0f; // -1/2 unit size  to  1/2 unit size
-				unitY -= screenUnitSize/2.0f;
+				worldX -= screenWorldSize/2.0f; // -1/2 world size  to  1/2 world size
+				worldY -= screenWorldSize/2.0f;
 
 
-				sf::Vector2f vector = vectorFieldVector(unitX, unitY); // Sample phase space direction vector from current point
+				sf::Vector2f vector = vectorFieldVector(worldX, worldY); // Sample phase space direction vector from current point
 				// sf::Vector2f drawingVector = normalized(vector); // Normalize for drawing purposes
+				sf::Vector2f drawingVector = vector;
 
-				float scale = 0.2f;
-				sf::Vector2f unitOrigin(unitX, unitY);
-				sf::Vector2f unitEnd   (unitX + vector.x * scale, unitY + vector.y * scale);
+				float magnitude = std::sqrt(vector.x*vector.x + vector.y*vector.y);
+				float weight = 2.0f;
+				float scale = 0.15f;
+
+				drawingVector /= weight;
+				drawingVector += (weight-1 / weight) * normalized(drawingVector);
+
+				sf::Vector2f worldOrigin(worldX, worldY);
+				sf::Vector2f worldEnd(worldX + drawingVector.x * scale, worldY + drawingVector.y * scale);
 
 				sf::Vertex lineSegment[] =
 				{
-					sf::Vertex(unitToPixel(unitOrigin, screenPixelSize, screenUnitSize), sf::Color::White), // origin
-					sf::Vertex(unitToPixel(unitEnd, screenPixelSize, screenUnitSize), sf::Color::Black)  // direction
+					sf::Vertex(worldToPixel(worldOrigin, screenPixelSize, screenWorldSize), logBlueCyanYellowRed(magnitude, 0.01f, 50.0f)), // origin
+					sf::Vertex(worldToPixel(worldEnd, screenPixelSize, screenWorldSize), sf::Color::Transparent)  // direction
 				};
 
 				window.draw(lineSegment, 2, sf::Lines);
