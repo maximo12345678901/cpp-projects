@@ -7,8 +7,8 @@ sf::Vector2f normalized(sf::Vector2f vec) {
 }
 
 sf::Vector2f vectorFieldVector(float a, float b) {
-	float da = 1/b; // derivative of the value on the x axis
-	float db = -std::sin(a) - 0.4f * b; // derivative of the value on the y axis
+	float da = a - a*b; // derivative of the value on the x axis
+	float db = a*b - b; // derivative of the value on the y axis
 
 	return sf::Vector2f(da, db);
 }
@@ -106,14 +106,54 @@ int main () {
 	int screenPixelSize = 1000; // Pixel length of the screen
 	float screenWorldSize = 10; // Length of the simulation window in world units;
 	sf::RenderWindow window(sf::VideoMode(screenPixelSize, screenPixelSize), "vcetor fild");
+	window.setFramerateLimit(60);
 
 	int pixelsPerWorld = screenPixelSize / screenWorldSize; // ratio of the pixel length and the world length
 	int vectorPixelDistance = 20; // This value is arbitrary
 
 	int vectorAmount = screenPixelSize / vectorPixelDistance;
 
+	float weight = 2.0f;
+	float scale = 0.2f;
+
+	int pathLength = 100000;
+
 	while (window.isOpen()) {
+		sf::Event event;
+		while (window.pollEvent(event)) {
+			if (event.type == sf::Event::Closed) {
+				window.close();
+			}
+		}
+
 		window.clear();
+
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
+			weight += 0.01f;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q) && weight > 0.0) {
+			weight -= 0.01f;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
+			scale += 0.005f;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::E) && scale > 0.0) {
+			scale -= 0.005f;
+		}
+
+		if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
+			sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
+			sf::Vector2f worldMousePosition = pixelToWorld(mousePosition, screenPixelSize, screenWorldSize);
+
+			sf::Vertex path[pathLength];
+			sf::Vector2f currentValue = worldMousePosition;
+			for (int i = 0; i < pathLength; i++) {
+				path[i] = sf::Vertex(worldToPixel(currentValue, screenPixelSize, screenWorldSize), sf::Color::White);
+				currentValue += vectorFieldVector(currentValue.x, currentValue.y) * 0.001f;
+			}
+
+			window.draw(path, pathLength, sf::Lines);
+		}
 
 		for (int i = 0; i < vectorAmount; i++) {
 			for (int j = 0; j < vectorAmount; j++) {
@@ -135,8 +175,6 @@ int main () {
 				sf::Vector2f drawingVector = vector;
 
 				float magnitude = std::sqrt(vector.x*vector.x + vector.y*vector.y);
-				float weight = 2.0f;
-				float scale = 0.15f;
 
 				drawingVector /= weight;
 				drawingVector += (weight-1 / weight) * normalized(drawingVector);
