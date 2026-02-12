@@ -30,7 +30,7 @@ int main() {
 
     sf::RenderWindow window(sf::VideoMode(windowSize.x, windowSize.y), "Mandelbrot set");
 
-    int maxIterations = 2500;
+    int maxIterations = 1500;
     // std::cout << "Max iterations: ";
     // std::cin >> maxIterations;
 
@@ -74,7 +74,7 @@ int main() {
 
                 if (z.x * z.x + z.y * z.y > 4.0) {
                     float t = static_cast<float>(i) / maxIterations;
-                    float threshold = 0.25f;
+                    float threshold = 0.01f;
 
                     sf::Color color;
                     if (t <= threshold) {

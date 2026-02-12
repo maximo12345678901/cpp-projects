@@ -6,11 +6,20 @@ sf::Vector2f normalized(sf::Vector2f vec) {
 	return (vec / sqrtf(vec.x*vec.x + vec.y*vec.y)); // Pythagoras
 }
 
-sf::Vector2f vectorFieldVector(float a, float b) {
-	float da = a - a*b; // derivative of the value on the x axis
-	float db = a*b - b; // derivative of the value on the y axis
+sf::Vector2f vectorFieldVector(float x, float y) {
+	float dx = y; // derivative of the value on the x axis
+	float dy = -sin(x) - 0.1f*y; // derivative of the value on the y axis
 
-	return sf::Vector2f(da, db);
+	return sf::Vector2f(dx, dy);
+}
+
+sf::Vector2f rungeKuttaStep(sf::Vector2f current, float dt) {
+	sf::Vector2f k1 = vectorFieldVector(current.x, current.y);
+	sf::Vector2f k2 = vectorFieldVector(current.x + 0.5f * dt * k1.x, current.y + 0.5f * dt * k1.y);
+	sf::Vector2f k3 = vectorFieldVector(current.x + 0.5f * dt * k2.x, current.y + 0.5f * dt * k2.y);
+	sf::Vector2f k4 = vectorFieldVector(current.x + dt * k3.x, current.y + dt * k3.y);
+
+	return (dt/6.0f) * (k1 + 2.0f*k2 + 2.0f*k3 + k4);
 }
 
 sf::Vector2f pixelToWorld(sf::Vector2i pixelCoord, int screenPixelSize, float screenWorldSize) {
@@ -79,12 +88,12 @@ sf::Color blueCyanYellowRed(float t)
         return lerpColor(blue, cyan, localT);
     }
     else if (t < 2.f / 3.f) {
-        // Cyan → Yellow
+        // Cyan to Yellow
         float localT = (t - 1.f / 3.f) * 3.f;
         return lerpColor(cyan, yellow, localT);
     }
     else {
-        // Yellow → Red
+        // Yellow direction Red
         float localT = (t - 2.f / 3.f) * 3.f;
         return lerpColor(yellow, red, localT);
     }
@@ -103,13 +112,13 @@ sf::Color logBlueCyanYellowRed(float value, float minValue, float maxValue)
 }
 
 int main () {
-	int screenPixelSize = 1000; // Pixel length of the screen
-	float screenWorldSize = 10; // Length of the simulation window in world units;
+	int screenPixelSize = 1300; // Pixel length of the screen
+	float screenWorldSize = 18; // Length of the simulation window in world units;
 	sf::RenderWindow window(sf::VideoMode(screenPixelSize, screenPixelSize), "vcetor fild");
 	window.setFramerateLimit(60);
 
 	int pixelsPerWorld = screenPixelSize / screenWorldSize; // ratio of the pixel length and the world length
-	int vectorPixelDistance = 20; // This value is arbitrary
+	int vectorPixelDistance = 30; // This value is arbitrary
 
 	int vectorAmount = screenPixelSize / vectorPixelDistance;
 
@@ -117,6 +126,7 @@ int main () {
 	float scale = 0.2f;
 
 	int pathLength = 100000;
+	float dt = 0.01f;
 
 	while (window.isOpen()) {
 		sf::Event event;
@@ -145,14 +155,27 @@ int main () {
 			sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
 			sf::Vector2f worldMousePosition = pixelToWorld(mousePosition, screenPixelSize, screenWorldSize);
 
-			sf::Vertex path[pathLength];
-			sf::Vector2f currentValue = worldMousePosition;
+			sf::Vertex eulerPathBad[pathLength];
+			sf::Vertex eulerPathGood[pathLength];
+			sf::Vertex rungeKuttaPath[pathLength];
+
+			sf::Vector2f currentValueEulerBad = worldMousePosition;
+			sf::Vector2f currentValueEulerGood = worldMousePosition;
+			sf::Vector2f currentValueRungeKutta = worldMousePosition;
+
 			for (int i = 0; i < pathLength; i++) {
-				path[i] = sf::Vertex(worldToPixel(currentValue, screenPixelSize, screenWorldSize), sf::Color::White);
-				currentValue += vectorFieldVector(currentValue.x, currentValue.y) * 0.001f;
+				// eulerPathBad[i] = sf::Vertex(worldToPixel(currentValueEulerBad, screenPixelSize, screenWorldSize), sf::Color::Blue);
+				eulerPathGood[i] = sf::Vertex(worldToPixel(currentValueEulerGood, screenPixelSize, screenWorldSize), sf::Color::Yellow);
+				rungeKuttaPath[i] = sf::Vertex(worldToPixel(currentValueRungeKutta, screenPixelSize, screenWorldSize), sf::Color::Green);
+
+				// currentValueEulerBad += vectorFieldVector(currentValueEulerBad.x, currentValueEulerBad.y) * dt;
+				currentValueEulerGood += vectorFieldVector(currentValueEulerGood.x, currentValueEulerGood.y) * dt;
+				currentValueRungeKutta += rungeKuttaStep(currentValueRungeKutta, dt);
 			}
 
-			window.draw(path, pathLength, sf::Lines);
+			// window.draw(eulerPathBad, pathLength, sf::LineStrip);
+			window.draw(eulerPathGood, pathLength, sf::LineStrip);
+			window.draw(rungeKuttaPath, pathLength, sf::LineStrip);
 		}
 
 		for (int i = 0; i < vectorAmount; i++) {
