@@ -126,7 +126,7 @@ int main () {
 	float scale = 0.2f;
 
 	int pathLength = 100000;
-	float dt = 0.01f;
+	float dt = 0.1f;
 
 	while (window.isOpen()) {
 		sf::Event event;
@@ -164,16 +164,16 @@ int main () {
 			sf::Vector2f currentValueRungeKutta = worldMousePosition;
 
 			for (int i = 0; i < pathLength; i++) {
-				// eulerPathBad[i] = sf::Vertex(worldToPixel(currentValueEulerBad, screenPixelSize, screenWorldSize), sf::Color::Blue);
-				eulerPathGood[i] = sf::Vertex(worldToPixel(currentValueEulerGood, screenPixelSize, screenWorldSize), sf::Color::Yellow);
+				eulerPathBad[i] = sf::Vertex(worldToPixel(currentValueEulerBad, screenPixelSize, screenWorldSize), sf::Color::Blue);
+				eulerPathGood[i] = sf::Vertex(worldToPixel(currentValueEulerGood, screenPixelSize, screenWorldSize), sf::Color::Yellow);	
 				rungeKuttaPath[i] = sf::Vertex(worldToPixel(currentValueRungeKutta, screenPixelSize, screenWorldSize), sf::Color::Green);
 
-				// currentValueEulerBad += vectorFieldVector(currentValueEulerBad.x, currentValueEulerBad.y) * dt;
-				currentValueEulerGood += vectorFieldVector(currentValueEulerGood.x, currentValueEulerGood.y) * dt;
+				currentValueEulerBad += vectorFieldVector(currentValueEulerBad.x, currentValueEulerBad.y) * dt;
+				currentValueEulerGood += vectorFieldVector(currentValueEulerGood.x, currentValueEulerGood.y) * dt / 100.0f;
 				currentValueRungeKutta += rungeKuttaStep(currentValueRungeKutta, dt);
 			}
 
-			// window.draw(eulerPathBad, pathLength, sf::LineStrip);
+			window.draw(eulerPathBad, pathLength, sf::LineStrip);
 			window.draw(eulerPathGood, pathLength, sf::LineStrip);
 			window.draw(rungeKuttaPath, pathLength, sf::LineStrip);
 		}
