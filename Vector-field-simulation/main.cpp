@@ -1,55 +1,25 @@
 #include <SFML/Graphics.hpp>
 #include <cmath>
 #include <vector>
+#include "../../vec.h"
 
-sf::Vector2f normalized(sf::Vector2f vec) {
-	return (vec / sqrtf(vec.x*vec.x + vec.y*vec.y)); // Pythagoras
-}
 
-sf::Vector2f vectorFieldVector(float x, float y) {
+Vector2 vectorFieldVector(float x, float y) {
 	float dx = y; // derivative of the value on the x axis
 	float dy = -sin(x) - 0.1f*y; // derivative of the value on the y axis
 
-	return sf::Vector2f(dx, dy);
+	return Vector2(dx, dy);
 }
 
-sf::Vector2f rungeKuttaStep(sf::Vector2f current, float dt) {
-	sf::Vector2f k1 = vectorFieldVector(current.x, current.y);
-	sf::Vector2f k2 = vectorFieldVector(current.x + 0.5f * dt * k1.x, current.y + 0.5f * dt * k1.y);
-	sf::Vector2f k3 = vectorFieldVector(current.x + 0.5f * dt * k2.x, current.y + 0.5f * dt * k2.y);
-	sf::Vector2f k4 = vectorFieldVector(current.x + dt * k3.x, current.y + dt * k3.y);
+Vector2 rungeKuttaStep(Vector2 current, double dt) {
+	Vector2 k1 = vectorFieldVector(current.x, current.y);
+	Vector2 k2 = vectorFieldVector(current.x + 0.5f * dt * k1.x, current.y + 0.5f * dt * k1.y);
+	Vector2 k3 = vectorFieldVector(current.x + 0.5f * dt * k2.x, current.y + 0.5f * dt * k2.y);
+	Vector2 k4 = vectorFieldVector(current.x + dt * k3.x, current.y + dt * k3.y);
 
-	return (dt/6.0f) * (k1 + 2.0f*k2 + 2.0f*k3 + k4);
+	return (k1 + k2*2.0 + k3*2.0 + k4) * (dt/6.0) ;
 }
 
-sf::Vector2f pixelToWorld(sf::Vector2i pixelCoord, int screenPixelSize, float screenWorldSize) {
-	sf::Vector2f coordinate;
-
-	coordinate.x = pixelCoord.x; // 0  to  pixelSize
-	coordinate.y = pixelCoord.y;
-
-	coordinate.x -= (screenPixelSize / 2.0f); // -1/2 pixel size  to  1/2 pixel size
-	coordinate.y -= (screenPixelSize / 2.0f);
-	coordinate.y *= -1;
-
-	coordinate /= (float) screenPixelSize; // -1/2  to  1/2
-
-	coordinate *= (float) screenWorldSize; // -1/2 world size  to  1/2 world size (length of 1 world size)
-	return coordinate;
-}
-
-sf::Vector2f worldToPixel(sf::Vector2f worldCoord, int screenPixelSize, float screenWorldSize) {
-	sf::Vector2f coordinate = worldCoord; // -1/2 world size  to  1/2 world size (length of 1 world size)
-
-	coordinate /= (float) screenWorldSize; // -1/2  to  1/2
-
-	coordinate *= (float) screenPixelSize; // -1/2 pixel size  to  1/2 pixel size
-	
-	coordinate.y *= -1;
-	coordinate.x += (screenPixelSize / 2.0f); // 0  to  pixelSize
-	coordinate.y += (screenPixelSize / 2.0f);
-	return coordinate;
-}
 
 float logNormalize(float v, float vMin, float vMax)
 {
@@ -122,11 +92,11 @@ int main () {
 
 	int vectorAmount = screenPixelSize / vectorPixelDistance;
 
-	float weight = 2.0f;
-	float scale = 0.2f;
+	double weight = 2.0;
+	double scale = 0.2;
 
 	int pathLength = 100000;
-	float dt = 0.1f;
+	float dt = 0.1;
 
 	while (window.isOpen()) {
 		sf::Event event;
@@ -153,15 +123,15 @@ int main () {
 
 		if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
 			sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
-			sf::Vector2f worldMousePosition = pixelToWorld(mousePosition, screenPixelSize, screenWorldSize);
+			Vector2 worldMousePosition = pixelToWorld(mousePosition, screenPixelSize, screenWorldSize);
 
 			sf::Vertex eulerPathBad[pathLength];
 			sf::Vertex eulerPathGood[pathLength];
 			sf::Vertex rungeKuttaPath[pathLength];
 
-			sf::Vector2f currentValueEulerBad = worldMousePosition;
-			sf::Vector2f currentValueEulerGood = worldMousePosition;
-			sf::Vector2f currentValueRungeKutta = worldMousePosition;
+			Vector2 currentValueEulerBad = worldMousePosition;
+			Vector2 currentValueEulerGood = worldMousePosition;
+			Vector2 currentValueRungeKutta = worldMousePosition;
 
 			for (int i = 0; i < pathLength; i++) {
 				eulerPathBad[i] = sf::Vertex(worldToPixel(currentValueEulerBad, screenPixelSize, screenWorldSize), sf::Color::Blue);
@@ -169,7 +139,7 @@ int main () {
 				rungeKuttaPath[i] = sf::Vertex(worldToPixel(currentValueRungeKutta, screenPixelSize, screenWorldSize), sf::Color::Green);
 
 				currentValueEulerBad += vectorFieldVector(currentValueEulerBad.x, currentValueEulerBad.y) * dt;
-				currentValueEulerGood += vectorFieldVector(currentValueEulerGood.x, currentValueEulerGood.y) * dt / 100.0f;
+				currentValueEulerGood += vectorFieldVector(currentValueEulerGood.x, currentValueEulerGood.y) * dt / 100.0;
 				currentValueRungeKutta += rungeKuttaStep(currentValueRungeKutta, dt);
 			}
 
@@ -193,17 +163,17 @@ int main () {
 				worldY -= screenWorldSize/2.0f;
 
 
-				sf::Vector2f vector = vectorFieldVector(worldX, worldY); // Sample phase space direction vector from current point
-				// sf::Vector2f drawingVector = normalized(vector); // Normalize for drawing purposes
-				sf::Vector2f drawingVector = vector;
+				Vector2 vector = vectorFieldVector(worldX, worldY); // Sample phase space direction vector from current point
+				// Vector2 drawingVector = normalized(vector); // Normalize for drawing purposes
+				Vector2 drawingVector = vector;
 
 				float magnitude = std::sqrt(vector.x*vector.x + vector.y*vector.y);
 
 				drawingVector /= weight;
-				drawingVector += (weight-1 / weight) * normalized(drawingVector);
+				drawingVector += drawingVector.Normalized() * (weight-1 / weight);
 
-				sf::Vector2f worldOrigin(worldX, worldY);
-				sf::Vector2f worldEnd(worldX + drawingVector.x * scale, worldY + drawingVector.y * scale);
+				Vector2 worldOrigin(worldX, worldY);
+				Vector2 worldEnd(worldX + drawingVector.x * scale, worldY + drawingVector.y * scale);
 
 				sf::Vertex lineSegment[] =
 				{
