@@ -4,6 +4,81 @@
 #include "../../vec.h"
 
 
+void draw3DGrid(
+    sf::RenderWindow& window,
+    float worldSize,
+    int divisions,
+    const Vector3& cameraPos,
+    const Vector2& cameraRot,
+    int screenPixelSize,
+    float fov
+)
+{
+    float half = worldSize * 0.5f;
+    float step = worldSize / divisions;
+
+    sf::Color gridColor(120, 120, 120);
+
+    for (int i = 0; i <= divisions; i++)
+    {
+        float offset = -half + i * step;
+
+        // Lines parallel to X
+        for (int j = 0; j <= divisions; j++)
+        {
+            float z = -half + j * step;
+
+            Vector3 p1(-half, offset, z);
+            Vector3 p2( half, offset, z);
+
+            sf::Vertex line[] =
+            {
+                sf::Vertex(worldToPixel3D(p1, cameraPos, cameraRot, screenPixelSize, fov), gridColor),
+                sf::Vertex(worldToPixel3D(p2, cameraPos, cameraRot, screenPixelSize, fov), gridColor)
+            };
+
+            window.draw(line, 2, sf::Lines);
+        }
+
+        // Lines parallel to Z
+        for (int j = 0; j <= divisions; j++)
+        {
+            float x = -half + j * step;
+
+            Vector3 p1(x, offset, -half);
+            Vector3 p2(x, offset,  half);
+
+            sf::Vertex line[] =
+            {
+                sf::Vertex(worldToPixel3D(p1, cameraPos, cameraRot, screenPixelSize, fov), gridColor),
+                sf::Vertex(worldToPixel3D(p2, cameraPos, cameraRot, screenPixelSize, fov), gridColor)
+            };
+
+            window.draw(line, 2, sf::Lines);
+        }
+
+        // Lines parallel to Y
+        for (int j = 0; j <= divisions; j++)
+        {
+            float x = -half + j * step;
+
+            Vector3 p1(x, -half, offset);
+            Vector3 p2(x,  half, offset);
+
+            sf::Vertex line[] =
+            {
+                sf::Vertex(worldToPixel3D(p1, cameraPos, cameraRot, screenPixelSize, fov), gridColor),
+                sf::Vertex(worldToPixel3D(p2, cameraPos, cameraRot, screenPixelSize, fov), gridColor)
+            };
+
+            window.draw(line, 2, sf::Lines);
+        }
+    }
+}
+
+
+
+
 Vector3 vectorFieldVector(double x, double y, double z) {
 	double dx = 10.0*(y-x);
 	double dy = x*(28.0-z)-y;
@@ -103,11 +178,13 @@ int main () {
 	Vector3 trajectoryStart(1.0, 1.0, 1.0);
 
 	// Camera variables
-	Vector3 cameraPos(0.0, 0.0, -10.0);
-	Vector2 cameraRot(0.0, 0.0);
-	double cameraMoveSpeed = 0.1;
+	Vector3 cameraPos(0.0, 0.0, -20.0);
+	Vector3 cameraCenter(0.0, 0.0, 0.0);
+	double cameraDistanceFromCenter = 20.0;
+	Vector2 cameraRot(0.0, M_PI / 2);
+	double cameraPanSpeed = 0.01;
+	double cameraMoveSpeed = 0.5;
 	sf::Vector2i previousMousePos(sf::Mouse::getPosition(window));
-	float cameraSensitivity = 0.002f;
 
 	window.setMouseCursorGrabbed(true);
 	
@@ -123,41 +200,39 @@ int main () {
 
 		window.clear();
 
-		// Looking around
-		sf::Vector2i mousePos = sf::Mouse::getPosition(window);
-		static sf::Vector2i lastPos = mousePos; // initialized once
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
+			cameraRot.y -= cameraPanSpeed;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
+			cameraRot.y += cameraPanSpeed;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
+			cameraRot.x -= cameraPanSpeed;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
+			cameraRot.x += cameraPanSpeed;
+		}
 
-		sf::Vector2i delta = mousePos - lastPos;
-
-		cameraRot.x += delta.y * cameraSensitivity;
-		cameraRot.y -= delta.x * cameraSensitivity;
-
-		// Don't set the mouse position at all
-		lastPos = mousePos;
-
-
-
-		// Camera controls
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
+			cameraCenter.x -= cameraMoveSpeed;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+			cameraCenter.x += cameraMoveSpeed;
+		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
-			cameraPos += Vector3::getForward(cameraRot) * cameraMoveSpeed;
+			cameraCenter.z += cameraMoveSpeed;
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
-			cameraPos -= Vector3::getForward(cameraRot) * cameraMoveSpeed;
-		}
-
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
-			cameraPos += Vector3::getRight(cameraRot) * cameraMoveSpeed;
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
-			cameraPos -= Vector3::getRight(cameraRot) * cameraMoveSpeed;
+			cameraCenter.z -= cameraMoveSpeed;
 		}
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
-			cameraPos.y += cameraMoveSpeed;
+			cameraDistanceFromCenter += cameraMoveSpeed;
 		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) {
-			cameraPos.y -= cameraMoveSpeed;
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) && cameraDistanceFromCenter > 5.0) {
+			cameraDistanceFromCenter -= cameraMoveSpeed;
 		}
+		cameraPos = cameraCenter + Vector3::getForward(cameraRot) * -cameraDistanceFromCenter;
 
 		// Trajectory controls
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::I)) {
@@ -204,6 +279,7 @@ int main () {
 		window.draw(rungeKuttaPath, pathLength, sf::LineStrip);
 
 
+		// drawing arrows
 		for (int i = 0; i < vectorAmount; i++) {
 			for (int j = 0; j < vectorAmount; j++) {
 				for (int k = 0; k < vectorAmount; k++) {
@@ -239,7 +315,7 @@ int main () {
 					double dist = Vector3::distance(cameraPos, worldOrigin);
 					double fade = 1.0 / (1.0 + dist * 0.1); 
 
-					sf::Color base = logBlueCyanYellowRed(magnitude, 0.01f, 50.0f);
+					sf::Color base = logBlueCyanYellowRed(magnitude, 0.01f, 100.0f);
 
 					sf::Color finalColor(
 						static_cast<sf::Uint8>(base.r * fade),
@@ -258,6 +334,13 @@ int main () {
 				}
 			}
 		}
+
+		sf::CircleShape test(5.0);
+		test.setFillColor(sf::Color::Red);
+		test.setOrigin(5.0, 5.0);
+		test.setPosition(worldToPixel3D(Vector3(0.0, 0.0, 0.0), cameraPos, cameraRot, screenPixelSize, 90.0));
+		window.draw(test);
+		draw3DGrid(window, 20.0f, 10, cameraPos, cameraRot, screenPixelSize, 90.0f);
 
 		window.display();
 	}
