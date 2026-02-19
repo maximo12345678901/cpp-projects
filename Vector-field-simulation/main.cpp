@@ -4,18 +4,19 @@
 #include "../../vec.h"
 
 
-Vector2 vectorFieldVector(float x, float y) {
-	float dx = y; // derivative of the value on the x axis
-	float dy = -sin(x) - 0.1f*y; // derivative of the value on the y axis
+Vector3 vectorFieldVector(double x, double y, double z) {
+	double dx = 10.0*(y-x);
+	double dy = x*(28.0-z)-y;
+	double dz = x*y - 8.0*z/3.0;
 
-	return Vector2(dx, dy);
+	return Vector3(dx, dy, dz);
 }
 
-Vector2 rungeKuttaStep(Vector2 current, double dt) {
-	Vector2 k1 = vectorFieldVector(current.x, current.y);
-	Vector2 k2 = vectorFieldVector(current.x + 0.5f * dt * k1.x, current.y + 0.5f * dt * k1.y);
-	Vector2 k3 = vectorFieldVector(current.x + 0.5f * dt * k2.x, current.y + 0.5f * dt * k2.y);
-	Vector2 k4 = vectorFieldVector(current.x + dt * k3.x, current.y + dt * k3.y);
+Vector3 rungeKuttaStep(Vector3 current, double dt) {
+	Vector3 k1 = vectorFieldVector(current.x, current.y, current.z);
+	Vector3 k2 = vectorFieldVector(current.x + 0.5f * dt * k1.x, current.y + 0.5f * dt * k1.y, current.z + 0.5f * dt * k1.z);
+	Vector3 k3 = vectorFieldVector(current.x + 0.5f * dt * k2.x, current.y + 0.5f * dt * k2.y, current.z + 0.5f * dt * k2.z);
+	Vector3 k4 = vectorFieldVector(current.x + dt * k3.x, current.y + dt * k3.y, current.z + dt * k3.z);
 
 	return (k1 + k2*2.0 + k3*2.0 + k4) * (dt/6.0) ;
 }
@@ -88,15 +89,29 @@ int main () {
 	window.setFramerateLimit(60);
 
 	int pixelsPerWorld = screenPixelSize / screenWorldSize; // ratio of the pixel length and the world length
-	int vectorPixelDistance = 30; // This value is arbitrary
+	int vectorPixelDistance = 60; // This value is arbitrary
 
 	int vectorAmount = screenPixelSize / vectorPixelDistance;
 
+	// Arrow variables
 	double weight = 2.0;
 	double scale = 0.2;
 
+	// Path variables
 	int pathLength = 100000;
-	float dt = 0.1;
+	float dt = 0.001;
+	Vector3 trajectoryStart(1.0, 1.0, 1.0);
+
+	// Camera variables
+	Vector3 cameraPos(0.0, 0.0, -10.0);
+	Vector2 cameraRot(0.0, 0.0);
+	double cameraMoveSpeed = 0.1;
+	sf::Vector2i previousMousePos(sf::Mouse::getPosition(window));
+	float cameraSensitivity = 0.002f;
+
+	window.setMouseCursorGrabbed(true);
+	
+
 
 	while (window.isOpen()) {
 		sf::Event event;
@@ -108,80 +123,139 @@ int main () {
 
 		window.clear();
 
+		// Looking around
+		sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+		static sf::Vector2i lastPos = mousePos; // initialized once
+
+		sf::Vector2i delta = mousePos - lastPos;
+
+		cameraRot.x += delta.y * cameraSensitivity;
+		cameraRot.y -= delta.x * cameraSensitivity;
+
+		// Don't set the mouse position at all
+		lastPos = mousePos;
+
+
+
+		// Camera controls
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
-			weight += 0.01f;
+			cameraPos += Vector3::getForward(cameraRot) * cameraMoveSpeed;
 		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q) && weight > 0.0) {
-			weight -= 0.01f;
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
-			scale += 0.005f;
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::E) && scale > 0.0) {
-			scale -= 0.005f;
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
+			cameraPos -= Vector3::getForward(cameraRot) * cameraMoveSpeed;
 		}
 
-		if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
-			sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
-			Vector2 worldMousePosition = pixelToWorld(mousePosition, screenPixelSize, screenWorldSize);
-
-			sf::Vertex eulerPathBad[pathLength];
-			sf::Vertex eulerPathGood[pathLength];
-			sf::Vertex rungeKuttaPath[pathLength];
-
-			Vector2 currentValueEulerBad = worldMousePosition;
-			Vector2 currentValueEulerGood = worldMousePosition;
-			Vector2 currentValueRungeKutta = worldMousePosition;
-
-			for (int i = 0; i < pathLength; i++) {
-				eulerPathBad[i] = sf::Vertex(worldToPixel(currentValueEulerBad, screenPixelSize, screenWorldSize), sf::Color::Blue);
-				eulerPathGood[i] = sf::Vertex(worldToPixel(currentValueEulerGood, screenPixelSize, screenWorldSize), sf::Color::Yellow);	
-				rungeKuttaPath[i] = sf::Vertex(worldToPixel(currentValueRungeKutta, screenPixelSize, screenWorldSize), sf::Color::Green);
-
-				currentValueEulerBad += vectorFieldVector(currentValueEulerBad.x, currentValueEulerBad.y) * dt;
-				currentValueEulerGood += vectorFieldVector(currentValueEulerGood.x, currentValueEulerGood.y) * dt / 100.0;
-				currentValueRungeKutta += rungeKuttaStep(currentValueRungeKutta, dt);
-			}
-
-			window.draw(eulerPathBad, pathLength, sf::LineStrip);
-			window.draw(eulerPathGood, pathLength, sf::LineStrip);
-			window.draw(rungeKuttaPath, pathLength, sf::LineStrip);
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+			cameraPos += Vector3::getRight(cameraRot) * cameraMoveSpeed;
 		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
+			cameraPos -= Vector3::getRight(cameraRot) * cameraMoveSpeed;
+		}
+
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
+			cameraPos.y += cameraMoveSpeed;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) {
+			cameraPos.y -= cameraMoveSpeed;
+		}
+
+		// Trajectory controls
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::I)) {
+			trajectoryStart.z += cameraMoveSpeed;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::K)) {
+			trajectoryStart.z -= cameraMoveSpeed;
+		}
+
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::L)) {
+			trajectoryStart.x += cameraMoveSpeed;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::J)) {
+			trajectoryStart.x -= cameraMoveSpeed;
+		}
+
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::O)) {
+			trajectoryStart.y += cameraMoveSpeed;
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::U)) {
+			trajectoryStart.y -= cameraMoveSpeed;
+		}
+
+		// sf::Vertex eulerPathBad[pathLength];
+		// sf::Vertex eulerPathGood[pathLength];
+		sf::Vertex rungeKuttaPath[pathLength];
+
+		// Vector3 currentValueEulerBad = trajectoryStart;
+		// Vector3 currentValueEulerGood = trajectoryStart;
+		Vector3 currentValueRungeKutta = trajectoryStart;
+
+		for (int i = 0; i < pathLength; i++) {
+			// eulerPathBad[i] = sf::Vertex(worldToPixel3D(currentValueEulerBad, cameraPos, cameraRot, screenPixelSize, 90), sf::Color::Blue);
+			// eulerPathGood[i] = sf::Vertex(worldToPixel3D(currentValueEulerGood, cameraPos, cameraRot, screenPixelSize, 90), sf::Color::Yellow);	
+			rungeKuttaPath[i] = sf::Vertex(worldToPixel3D(currentValueRungeKutta, cameraPos, cameraRot, screenPixelSize, 90), sf::Color::White);
+
+			// currentValueEulerBad += vectorFieldVector(currentValueEulerBad.x, currentValueEulerBad.y, currentValueEulerBad.z) * dt;
+			// currentValueEulerGood += vectorFieldVector(currentValueEulerGood.x, currentValueEulerGood.y, currentValueEulerGood.z) * dt / 100.0;
+			currentValueRungeKutta += rungeKuttaStep(currentValueRungeKutta, dt);
+		}
+
+		// window.draw(eulerPathBad, pathLength, sf::LineStrip);
+		// window.draw(eulerPathGood, pathLength, sf::LineStrip);
+		window.draw(rungeKuttaPath, pathLength, sf::LineStrip);
+
 
 		for (int i = 0; i < vectorAmount; i++) {
 			for (int j = 0; j < vectorAmount; j++) {
-				float worldX = (float)i; // 0  to  vectorAmount
-				float worldY = (float)j;
+				for (int k = 0; k < vectorAmount; k++) {
+					float worldX = (float)i; // 0  to  vectorAmount
+					float worldY = (float)j;
+					float worldZ = (float)k;
 
-				worldX /= (float)vectorAmount; // 0  to  1
-				worldY /= (float)vectorAmount;
+					worldX /= (float)vectorAmount; // 0  to  1
+					worldY /= (float)vectorAmount;
+					worldZ /= (float)vectorAmount;
 
-				worldX *= screenWorldSize; // 0  to  world size
-				worldY *= screenWorldSize;
+					worldX *= screenWorldSize; // 0  to  world size
+					worldY *= screenWorldSize;
+					worldZ *= screenWorldSize;
 
-				worldX -= screenWorldSize/2.0f; // -1/2 world size  to  1/2 world size
-				worldY -= screenWorldSize/2.0f;
+					worldX -= screenWorldSize/2.0f; // -1/2 world size  to  1/2 world size
+					worldY -= screenWorldSize/2.0f;
+					worldZ -= screenWorldSize/2.0f;
 
 
-				Vector2 vector = vectorFieldVector(worldX, worldY); // Sample phase space direction vector from current point
-				// Vector2 drawingVector = normalized(vector); // Normalize for drawing purposes
-				Vector2 drawingVector = vector;
+					Vector3 vector = vectorFieldVector(worldX, worldY, worldZ); // Sample phase space direction vector from current point
+					// Vector2 drawingVector = normalized(vector); // Normalize for drawing purposes
+					Vector3 drawingVector = vector;
 
-				float magnitude = std::sqrt(vector.x*vector.x + vector.y*vector.y);
+					double magnitude = Vector3::length(vector);
 
-				drawingVector /= weight;
-				drawingVector += drawingVector.Normalized() * (weight-1 / weight);
+					drawingVector /= weight;
+					drawingVector += drawingVector.Normalized() * (weight-1 / weight);
 
-				Vector2 worldOrigin(worldX, worldY);
-				Vector2 worldEnd(worldX + drawingVector.x * scale, worldY + drawingVector.y * scale);
+					Vector3 worldOrigin(worldX, worldY, worldZ);
+					Vector3 worldEnd(worldX + drawingVector.x * scale, worldY + drawingVector.y * scale, worldZ + drawingVector.z * scale);
 
-				sf::Vertex lineSegment[] =
-				{
-					sf::Vertex(worldToPixel(worldOrigin, screenPixelSize, screenWorldSize), logBlueCyanYellowRed(magnitude, 0.01f, 50.0f)), // origin
-					sf::Vertex(worldToPixel(worldEnd, screenPixelSize, screenWorldSize), sf::Color::Transparent)  // direction
-				};
+					double dist = Vector3::distance(cameraPos, worldOrigin);
+					double fade = 1.0 / (1.0 + dist * 0.1); 
 
-				window.draw(lineSegment, 2, sf::Lines);
+					sf::Color base = logBlueCyanYellowRed(magnitude, 0.01f, 50.0f);
+
+					sf::Color finalColor(
+						static_cast<sf::Uint8>(base.r * fade),
+						static_cast<sf::Uint8>(base.g * fade),
+						static_cast<sf::Uint8>(base.b * fade)
+					);
+
+
+					sf::Vertex lineSegment[] =
+					{
+						sf::Vertex(worldToPixel3D(worldOrigin, cameraPos, cameraRot, screenPixelSize, 90.0), finalColor), // origin
+						sf::Vertex(worldToPixel3D(worldEnd, cameraPos, cameraRot, screenPixelSize, 90.0), sf::Color::Transparent)  // direction
+					};
+
+					window.draw(lineSegment, 2, sf::Lines);
+				}
 			}
 		}
 
