@@ -2,78 +2,29 @@
 #include <cmath>
 #include <vector>
 #include "../../vec.h"
+#include <iostream>
 
 
-void draw3DGrid(
-    sf::RenderWindow& window,
-    float worldSize,
-    int divisions,
-    const Vector3& cameraPos,
-    const Vector2& cameraRot,
-    int screenPixelSize,
-    float fov
-)
-{
-    float half = worldSize * 0.5f;
-    float step = worldSize / divisions;
+void drawAxes(sf::RenderWindow& window, int screenPixelSize, Vector3 cameraPos, Vector3 cameraCenter, Vector2 cameraRot, double length) {
+    sf::Vertex xAxis[] =
+	{
+		sf::Vertex(worldToPixel3D(cameraCenter - Vector3(length, 0.0, 0.0), cameraPos, cameraRot, screenPixelSize, 90.0), sf::Color::Red),
+		sf::Vertex(worldToPixel3D(cameraCenter + Vector3(length, 0.0, 0.0), cameraPos, cameraRot, screenPixelSize, 90.0), sf::Color::Red)
+	};
+	sf::Vertex yAxis[] =
+	{
+		sf::Vertex(worldToPixel3D(cameraCenter - Vector3(0.0, length, 0.0), cameraPos, cameraRot, screenPixelSize, 90.0), sf::Color::Green),
+		sf::Vertex(worldToPixel3D(cameraCenter + Vector3(0.0, length, 0.0), cameraPos, cameraRot, screenPixelSize, 90.0), sf::Color::Green)
+	};
+	sf::Vertex zAxis[] =
+	{
+		sf::Vertex(worldToPixel3D(cameraCenter - Vector3(0.0, 0.0, length), cameraPos, cameraRot, screenPixelSize, 90.0), sf::Color::Blue),
+		sf::Vertex(worldToPixel3D(cameraCenter + Vector3(0.0, 0.0, length), cameraPos, cameraRot, screenPixelSize, 90.0), sf::Color::Blue)
+	};
 
-    sf::Color gridColor(120, 120, 120);
-
-    for (int i = 0; i <= divisions; i++)
-    {
-        float offset = -half + i * step;
-
-        // Lines parallel to X
-        for (int j = 0; j <= divisions; j++)
-        {
-            float z = -half + j * step;
-
-            Vector3 p1(-half, offset, z);
-            Vector3 p2( half, offset, z);
-
-            sf::Vertex line[] =
-            {
-                sf::Vertex(worldToPixel3D(p1, cameraPos, cameraRot, screenPixelSize, fov), gridColor),
-                sf::Vertex(worldToPixel3D(p2, cameraPos, cameraRot, screenPixelSize, fov), gridColor)
-            };
-
-            window.draw(line, 2, sf::Lines);
-        }
-
-        // Lines parallel to Z
-        for (int j = 0; j <= divisions; j++)
-        {
-            float x = -half + j * step;
-
-            Vector3 p1(x, offset, -half);
-            Vector3 p2(x, offset,  half);
-
-            sf::Vertex line[] =
-            {
-                sf::Vertex(worldToPixel3D(p1, cameraPos, cameraRot, screenPixelSize, fov), gridColor),
-                sf::Vertex(worldToPixel3D(p2, cameraPos, cameraRot, screenPixelSize, fov), gridColor)
-            };
-
-            window.draw(line, 2, sf::Lines);
-        }
-
-        // Lines parallel to Y
-        for (int j = 0; j <= divisions; j++)
-        {
-            float x = -half + j * step;
-
-            Vector3 p1(x, -half, offset);
-            Vector3 p2(x,  half, offset);
-
-            sf::Vertex line[] =
-            {
-                sf::Vertex(worldToPixel3D(p1, cameraPos, cameraRot, screenPixelSize, fov), gridColor),
-                sf::Vertex(worldToPixel3D(p2, cameraPos, cameraRot, screenPixelSize, fov), gridColor)
-            };
-
-            window.draw(line, 2, sf::Lines);
-        }
-    }
+	window.draw(xAxis, 2, sf::Lines);
+	window.draw(yAxis, 2, sf::Lines);
+	window.draw(zAxis, 2, sf::Lines);
 }
 
 
@@ -179,10 +130,12 @@ int main () {
 
 	// Camera variables
 	Vector3 cameraPos(0.0, 0.0, -20.0);
-	Vector3 cameraCenter(0.0, 0.0, 0.0);
-	double cameraDistanceFromCenter = 20.0;
-	Vector2 cameraRot(0.0, M_PI / 2);
-	double cameraPanSpeed = 0.01;
+	Vector3 cameraCenter(0.0, 0.0, 20.0);
+	double cameraDistanceFromCenter = 40.0;
+	Vector2 cameraRot;
+	cameraRot.x = -(M_PI/2.0);
+	cameraRot.y = 2.0;
+	double cameraPanSpeed = 0.05;
 	double cameraMoveSpeed = 0.5;
 	sf::Vector2i previousMousePos(sf::Mouse::getPosition(window));
 
@@ -207,10 +160,14 @@ int main () {
 			cameraRot.y += cameraPanSpeed;
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
-			cameraRot.x -= cameraPanSpeed;
+			if (cameraRot.x > -M_PI+0.01) {
+				cameraRot.x -= cameraPanSpeed;
+			}
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
-			cameraRot.x += cameraPanSpeed;
+			if (cameraRot.x < -0.01) {
+				cameraRot.x += cameraPanSpeed;
+			}
 		}
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
@@ -280,67 +237,65 @@ int main () {
 
 
 		// drawing arrows
-		for (int i = 0; i < vectorAmount; i++) {
-			for (int j = 0; j < vectorAmount; j++) {
-				for (int k = 0; k < vectorAmount; k++) {
-					float worldX = (float)i; // 0  to  vectorAmount
-					float worldY = (float)j;
-					float worldZ = (float)k;
+		// for (int i = 0; i < vectorAmount; i++) {
+		// 	for (int j = 0; j < vectorAmount; j++) {
+		// 		for (int k = 0; k < vectorAmount; k++) {
+		// 			float worldX = (float)i; // 0  to  vectorAmount
+		// 			float worldY = (float)j;
+		// 			float worldZ = (float)k;
 
-					worldX /= (float)vectorAmount; // 0  to  1
-					worldY /= (float)vectorAmount;
-					worldZ /= (float)vectorAmount;
+		// 			worldX /= (float)vectorAmount; // 0  to  1
+		// 			worldY /= (float)vectorAmount;
+		// 			worldZ /= (float)vectorAmount;
 
-					worldX *= screenWorldSize; // 0  to  world size
-					worldY *= screenWorldSize;
-					worldZ *= screenWorldSize;
+		// 			worldX *= screenWorldSize; // 0  to  world size
+		// 			worldY *= screenWorldSize;
+		// 			worldZ *= screenWorldSize;
 
-					worldX -= screenWorldSize/2.0f; // -1/2 world size  to  1/2 world size
-					worldY -= screenWorldSize/2.0f;
-					worldZ -= screenWorldSize/2.0f;
-
-
-					Vector3 vector = vectorFieldVector(worldX, worldY, worldZ); // Sample phase space direction vector from current point
-					// Vector2 drawingVector = normalized(vector); // Normalize for drawing purposes
-					Vector3 drawingVector = vector;
-
-					double magnitude = Vector3::length(vector);
-
-					drawingVector /= weight;
-					drawingVector += drawingVector.Normalized() * (weight-1 / weight);
-
-					Vector3 worldOrigin(worldX, worldY, worldZ);
-					Vector3 worldEnd(worldX + drawingVector.x * scale, worldY + drawingVector.y * scale, worldZ + drawingVector.z * scale);
-
-					double dist = Vector3::distance(cameraPos, worldOrigin);
-					double fade = 1.0 / (1.0 + dist * 0.1); 
-
-					sf::Color base = logBlueCyanYellowRed(magnitude, 0.01f, 100.0f);
-
-					sf::Color finalColor(
-						static_cast<sf::Uint8>(base.r * fade),
-						static_cast<sf::Uint8>(base.g * fade),
-						static_cast<sf::Uint8>(base.b * fade)
-					);
+		// 			worldX -= screenWorldSize/2.0f; // -1/2 world size  to  1/2 world size
+		// 			worldY -= screenWorldSize/2.0f;
+		// 			worldZ -= screenWorldSize/2.0f;
 
 
-					sf::Vertex lineSegment[] =
-					{
-						sf::Vertex(worldToPixel3D(worldOrigin, cameraPos, cameraRot, screenPixelSize, 90.0), finalColor), // origin
-						sf::Vertex(worldToPixel3D(worldEnd, cameraPos, cameraRot, screenPixelSize, 90.0), sf::Color::Transparent)  // direction
-					};
+		// 			Vector3 vector = vectorFieldVector(worldX, worldY, worldZ); // Sample phase space direction vector from current point
+		// 			// Vector2 drawingVector = normalized(vector); // Normalize for drawing purposes
+		// 			Vector3 drawingVector = vector;
 
-					window.draw(lineSegment, 2, sf::Lines);
-				}
-			}
-		}
+		// 			double magnitude = Vector3::length(vector);
 
-		sf::CircleShape test(5.0);
-		test.setFillColor(sf::Color::Red);
-		test.setOrigin(5.0, 5.0);
-		test.setPosition(worldToPixel3D(Vector3(0.0, 0.0, 0.0), cameraPos, cameraRot, screenPixelSize, 90.0));
-		window.draw(test);
-		draw3DGrid(window, 20.0f, 10, cameraPos, cameraRot, screenPixelSize, 90.0f);
+		// 			drawingVector /= weight;
+		// 			drawingVector += drawingVector.Normalized() * (weight-1 / weight);
+
+		// 			Vector3 worldOrigin(worldX, worldY, worldZ);
+		// 			Vector3 worldEnd(worldX + drawingVector.x * scale, worldY + drawingVector.y * scale, worldZ + drawingVector.z * scale);
+
+		// 			double dist = Vector3::distance(cameraPos, worldOrigin);
+		// 			double fade = 1.0 / (1.0 + dist * 0.1); 
+
+		// 			sf::Color base = logBlueCyanYellowRed(magnitude, 0.01f, 100.0f);
+
+		// 			sf::Color finalColor(
+		// 				static_cast<sf::Uint8>(base.r * fade),
+		// 				static_cast<sf::Uint8>(base.g * fade),
+		// 				static_cast<sf::Uint8>(base.b * fade)
+		// 			);
+
+
+		// 			sf::Vertex lineSegment[] =
+		// 			{
+		// 				sf::Vertex(worldToPixel3D(worldOrigin, cameraPos, cameraRot, screenPixelSize, 90.0), finalColor), // origin
+		// 				sf::Vertex(worldToPixel3D(worldEnd, cameraPos, cameraRot, screenPixelSize, 90.0), sf::Color::Transparent)  // direction
+		// 			};
+
+		// 			window.draw(lineSegment, 2, sf::Lines);
+		// 		}
+		// 	}
+		// }
+
+		drawAxes(window, screenPixelSize, cameraPos, cameraCenter, cameraRot, cameraDistanceFromCenter);
+		std::cout << "\033[2J" << "\n";
+        std::cout << "Pitch: " << cameraRot.x << "\n";
+		std::cout << "Yaw: " << cameraRot.y << "\n";
 
 		window.display();
 	}
