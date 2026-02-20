@@ -133,15 +133,10 @@ int main () {
 	Vector3 cameraCenter(0.0, 0.0, 20.0);
 	double cameraDistanceFromCenter = 40.0;
 	Vector2 cameraRot;
-	cameraRot.x = -(M_PI/2.0);
-	cameraRot.y = 2.0;
+	cameraRot.x = -(M_PI/1.5);
+	cameraRot.y = 3.7;
 	double cameraPanSpeed = 0.05;
 	double cameraMoveSpeed = 0.5;
-	sf::Vector2i previousMousePos(sf::Mouse::getPosition(window));
-
-	window.setMouseCursorGrabbed(true);
-	
-
 
 	while (window.isOpen()) {
 		sf::Event event;
@@ -160,15 +155,14 @@ int main () {
 			cameraRot.y += cameraPanSpeed;
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
-			if (cameraRot.x > -M_PI+0.01) {
-				cameraRot.x -= cameraPanSpeed;
-			}
+			cameraRot.x -= cameraPanSpeed;
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
-			if (cameraRot.x < -0.01) {
-				cameraRot.x += cameraPanSpeed;
-			}
+			cameraRot.x += cameraPanSpeed;
 		}
+
+		if (cameraRot.x < -M_PI) {cameraRot.x = -M_PI+0.01;}
+		if (cameraRot.x > 0.0) {cameraRot.x = -0.01;}
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
 			cameraCenter.x -= cameraMoveSpeed;
