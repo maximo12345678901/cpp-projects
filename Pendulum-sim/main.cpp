@@ -6,6 +6,7 @@
 #include <omp.h>
 #include <iomanip>
 #include <sstream>
+#include "../../vec.h"
 
 float clamp(float v, float minVal, float maxVal) {
     return std::max(minVal, std::min(v, maxVal));
@@ -13,99 +14,59 @@ float clamp(float v, float minVal, float maxVal) {
 
 float wrap(float min, float max, float value) {
     float newValue = value;
-    while (newValue < min) {
-        newValue += max - min;
-    }
-    while (newValue > max) {
-        newValue -= max - min;
-    }
+    while (newValue < min) newValue += max - min;
+    while (newValue > max) newValue -= max - min;
     return newValue;
 }
 
-// HSV to RGB conversion
 sf::Color hsvToRgb(float h, float s, float v) {
     h = fmod(h, 360.f);
     if (h < 0) h += 360.f;
-
     float c = v * s;
     float x = c * (1 - std::fabs(fmod(h / 60.f, 2) - 1));
     float m = v - c;
-
-    float rPrime, gPrime, bPrime;
-    if      (h < 60)  { rPrime = c; gPrime = x; bPrime = 0; }
-    else if (h < 120) { rPrime = x; gPrime = c; bPrime = 0; }
-    else if (h < 180) { rPrime = 0; gPrime = c; bPrime = x; }
-    else if (h < 240) { rPrime = 0; gPrime = x; bPrime = c; }
-    else if (h < 300) { rPrime = x; gPrime = 0; bPrime = c; }
-    else              { rPrime = c; gPrime = 0; bPrime = x; }
-
-    sf::Uint8 r = static_cast<sf::Uint8>((rPrime + m) * 255);
-    sf::Uint8 g = static_cast<sf::Uint8>((gPrime + m) * 255);
-    sf::Uint8 b = static_cast<sf::Uint8>((bPrime + m) * 255);
-
-    return sf::Color(r, g, b);
-}
-
-// Get stretched hue-square color
-sf::Color getHueSquareColor(float x, float y, float width, float height) {
-    float cx = width / 2.f;
-    float cy = height / 2.f;
-
-    // Normalize to -1..1
-    float dx = (x - cx) / (width / 2.f);
-    float dy = (y - cy) / (height / 2.f);
-
-    // Square radius (stretches to edges)
-    float radius = std::max(std::fabs(dx), std::fabs(dy));
-    radius = clamp(radius, 0.f, 1.f);
-
-    // Hue from angle
-    float angle = std::atan2(dy, dx); // -π..π
-    float hue = angle / (2 * M_PI);   // -0.5..0.5
-    if (hue < 0) hue += 1.f;          // 0..1
-
-    // Saturation from distance, value fixed at 1
-    float saturation = radius;
-    float value = 1.f;
-
-    return hsvToRgb(hue * 360.f, saturation, value);
-}
-
-float mapAngleToScreen(double angle, float size) {
-    return (angle + M_PI) / (2.0 * M_PI) * size;
+    float rP, gP, bP;
+    if      (h < 60)  { rP = c; gP = x; bP = 0; }
+    else if (h < 120) { rP = x; gP = c; bP = 0; }
+    else if (h < 180) { rP = 0; gP = c; bP = x; }
+    else if (h < 240) { rP = 0; gP = x; bP = c; }
+    else if (h < 300) { rP = x; gP = 0; bP = c; }
+    else              { rP = c; gP = 0; bP = x; }
+    return sf::Color(
+        static_cast<sf::Uint8>((rP + m) * 255),
+        static_cast<sf::Uint8>((gP + m) * 255),
+        static_cast<sf::Uint8>((bP + m) * 255)
+    );
 }
 
 double angularAccel1(float l1, float l2,
-                    double m1, double m2,
-                    double th1, double th2,
-                    double w1, double w2,
-                    double g = 9.80665)
+                     double m1, double m2,
+                     double th1, double th2,
+                     double w1, double w2,
+                     double g = 100)
 {
     double delta = th1 - th2;
-    double denom = l1 * (3.0 - std::cos(2.0*delta));
-
+    double denom = l1 * (3.0 - std::cos(2.0 * delta));
     return (
         -g * 3 * std::sin(th1)
-        - g * std::sin(th1 - 2.0*th2)
-        - 2.0 * std::sin(delta) * m2 *
-        (w2*w2 * l2 + w1*w1 * l1 * std::cos(delta))
+        - g * std::sin(th1 - 2.0 * th2)
+        - 2.0 * std::sin(delta) * (w2*w2 * l2 + w1*w1 * l1 * std::cos(delta))
     ) / denom;
 }
 
 double angularAccel2(float l1, float l2,
-                    double m1, double m2,
-                    double th1, double th2,
-                    double w1, double w2,
-                    double g = 9.80665)
+                     double m1, double m2,
+                     double th1, double th2,
+                     double w1, double w2,
+                     double g = 100)
 {
     double delta = th1 - th2;
-    double denom = l2 * (3.0- std::cos(2.0*delta));
-
+    double denom = l2 * (3.0 - std::cos(2.0 * delta));
     return (
-        2.0 * std::sin(delta) *
-        (w1*w1 * l1 * 2
-        + g * 2 * std::cos(th1)
-        + w2*w2 * l2 * std::cos(delta))
+        2.0 * std::sin(delta) * (
+            w1*w1 * l1 * 2
+            + g * 2 * std::cos(th1)
+            + w2*w2 * l2 * std::cos(delta))
     ) / denom;
 }
 
@@ -220,8 +181,8 @@ class Pendulum {
 
         Pendulum() { // Constructor
             dt = 0.002;
-            l1 = 2;
-            l2 = 2;
+            l1 = 1.8;
+            l2 = 2.2;
             m1 = 1;
             m2 = 1;
 
@@ -231,8 +192,8 @@ class Pendulum {
 
             th1 = 0;
             th2 = 0;
-            w1 = 0.0;
-            w2 = 0.0;
+            w1 = 6.0;
+            w2 = -6.0;
 
             // convert the angle to screen coordinates
             firstDotPos = sf::Vector2f(origin.x + l1 * cos(th1), origin.y + l1 * sin(th1));
@@ -245,210 +206,200 @@ class Pendulum {
 int main() {
     bool running = true;
     bool doGenerateMap;
+
     std::cout << "\nstate space? (y/n)\n";
     std::string input;
     std::cin >> input;
-    if (input == "y" || input == "Y") {
-        doGenerateMap = true;
-    }
-    else {
-        doGenerateMap = false;
-    }
+    doGenerateMap = (input == "y" || input == "Y");
+
+    int screenPixelSize;
+    std::cout << "\nscreen size: ";
+    std::cin >> screenPixelSize;
+    const float graphWorldSize  = 2.0f * M_PI;
 
     sf::RenderWindow simulationWindow;
     sf::RenderWindow graphWindow;
     sf::RenderWindow mapWindow;
 
-    // Set up all of the windows
     if (!doGenerateMap) {
-        simulationWindow.create(sf::VideoMode(1000, 1000), "pdulum simul");
-        graphWindow.create(sf::VideoMode(1000, 1000), "agel graf");
-
-        simulationWindow.setPosition(sf::Vector2i(100, 100));
-        graphWindow.setPosition(sf::Vector2i(1200, 100));
+        simulationWindow.create(sf::VideoMode(screenPixelSize, screenPixelSize), "pendulum sim");
+        graphWindow.create(sf::VideoMode(screenPixelSize, screenPixelSize), "angle graph");
 
         simulationWindow.setFramerateLimit(120);
     }
 
-    // Set up the color map
+    // Color map setup
     sf::Image originalColorMap;
-    if (!originalColorMap.loadFromFile("./colormap.png")) {
-        return 1;
-    }
-    unsigned int originalColorMapWidth  = originalColorMap.getSize().x;
-    unsigned int originalColorMapHeight = originalColorMap.getSize().y;
+    if (!originalColorMap.loadFromFile("./colormap.png")) return 1;
+    unsigned int cmW = originalColorMap.getSize().x;
+    unsigned int cmH = originalColorMap.getSize().y;
 
-    int resolution = 500;
+    int resolution = 1000;
+    if (doGenerateMap) {
+        std::cout << "\nresolution: ";
+        std::cin >> resolution;
+    }
     sf::Image currentColorMap;
-    currentColorMap.create(originalColorMapWidth, originalColorMapHeight);
+    currentColorMap.create(cmW, cmH);
 
     sf::Texture texture;
     texture.loadFromImage(currentColorMap);
-
     sf::Sprite sprite(texture);
+    sprite.setScale(sf::Vector2f(screenPixelSize / 1000.0f, screenPixelSize / 1000.0f));
 
-    std::vector<std::vector<sf::Color>> originalColorValues(originalColorMapHeight, std::vector<sf::Color>(originalColorMapWidth));
-    std::vector<std::vector<sf::Color>> currentColorValues(originalColorMapHeight, std::vector<sf::Color>(originalColorMapWidth));
+    std::vector<std::vector<sf::Color>> originalColorValues(cmH, std::vector<sf::Color>(cmW));
+    std::vector<std::vector<sf::Color>> currentColorValues (cmH, std::vector<sf::Color>(cmW));
+    std::vector<std::vector<Pendulum>>  pendulums(resolution, std::vector<Pendulum>(resolution));
 
-    std::vector<std::vector<Pendulum>> pendulums(resolution, std::vector<Pendulum>(resolution));
+    Vector2 viewCenter(0.0, 0.0);
+    double viewSideLength = 2 * M_PI;
+    
+    
 
     if (doGenerateMap) {
-        mapWindow.create(sf::VideoMode(1000, 1000), "clormap");
-
-        // mapWindow.setPosition(sf::Vector2i(200, 400));
+        mapWindow.create(sf::VideoMode(screenPixelSize, screenPixelSize), "colormap");
         mapWindow.setFramerateLimit(60);
 
-        for (unsigned int y = 0; y < originalColorMapHeight; ++y) {
-            for (unsigned int x = 0; x < originalColorMapWidth; ++x) {
-                originalColorValues.at(y).at(x) = originalColorMap.getPixel(x, y);
-                currentColorValues.at(y).at(x) = originalColorMap.getPixel(x, y);
-            }
-        }
-	
+        std::cout << "\nx center: ";
+        std::cin >> viewCenter.x;
+        std::cout << "\ny center: ";
+        std::cin >> viewCenter.y;
+        std::cout << "\nview diameter: ";
+        std::cin >> viewSideLength;
+        std::cout << "\n";
 
-        // Set up all pendulums
+        if (viewSideLength == 0) {
+            viewSideLength = 2 * M_PI;
+        }
+
+        for (unsigned int y = 0; y < cmH; ++y)
+            for (unsigned int x = 0; x < cmW; ++x)
+                originalColorValues[y][x] = currentColorValues[y][x] = originalColorMap.getPixel(x, y);
+
         for (int i = 0; i < resolution; ++i) {
             for (int j = 0; j < resolution; ++j) {
-                Pendulum pendulum;
-                pendulum.l1 = -1.0;
-                pendulum.l2 = -1.0;
-
-                float normX = ((float)i / (resolution - 1)) * 2 * M_PI - M_PI;
-                float normY = ((float)j / (resolution - 1)) * 2 * M_PI - M_PI;
-
-                pendulum.th1 = normX;  
-                pendulum.th2 = normY;
-                
-
-                pendulums.at(i).at(j) = pendulum;
+                Pendulum p;
+                double th1 = viewCenter.x + ((double)i / (resolution - 1) - 0.5) * viewSideLength;
+                double th2 = viewCenter.y + ((double)j / (resolution - 1) - 0.5) * viewSideLength;
+                p.th1 = th1;
+                p.th2 = th2;
+                pendulums[i][j] = p;
             }
         }
     }
-
-
 
     sf::Clock clock;
-    int frameCount = 0;
     int fpsCounter = 0;
 
-
-    // Declare some variables relating to the pendulums
-    double G = 100;
-    double dt = 0.002;
+    double G  = 100;
+    double dt = 0.007;
 
     Pendulum pendulum;
-    
-    std::vector<sf::CircleShape> graphTrail;
+    std::vector<sf::Vector2f> graphTrail;
+    graphTrail.reserve(2500);
 
-    graphTrail.reserve(9999999);
+    std::vector<sf::Vector2f> pendulumTrail;
+    pendulumTrail.reserve(300);
 
     if (!doGenerateMap) {
-
-
         std::cout << "\nth1: ";
-        double firstAngle;
-        std::cin >> firstAngle;
+        std::cin >> pendulum.th1;
         std::cout << "\nth2: ";
-        double secondAngle;
-        std::cin >> secondAngle;
-
-        // pendulum.th1 = ((float) 832 / (resolution - 1)) * 2 * M_PI - M_PI;
-        // pendulum.th2 = ((float) 720 / (resolution - 1)) * 2 * M_PI - M_PI;
-        pendulum.th1 = firstAngle;
-        pendulum.th2 = secondAngle;
+        std::cin >> pendulum.th2;
     }
 
-    // loop
     while (running) {
         sf::Event event;
+
         if (!doGenerateMap) {
-            while (simulationWindow.pollEvent(event)) {
-                if (event.type == sf::Event::Closed) {
-                    running = false;
-                }
-            }
-            while (graphWindow.pollEvent(event)) {
-                if (event.type == sf::Event::Closed) {
-                    running = false;
-                }
-            }
+            while (simulationWindow.pollEvent(event))
+                if (event.type == sf::Event::Closed) running = false;
+            while (graphWindow.pollEvent(event))
+                if (event.type == sf::Event::Closed) running = false;
         }
         if (doGenerateMap) {
-            while (mapWindow.pollEvent(event)) {
-                if (event.type == sf::Event::Closed) {
-                    running = false;
-                }
-            }
+            while (mapWindow.pollEvent(event))
+                if (event.type == sf::Event::Closed) running = false;
         }
+
         if (!doGenerateMap) {
-            // Update simulation window
             simulationWindow.clear(sf::Color(10, 10, 10));
-
-
-            // // Update graph window
-            int pointSize = 2;
-            
             graphWindow.clear(sf::Color(0, 0, 0));
 
-            sf::CircleShape graphPoint(pointSize);
-            graphPoint.setFillColor(sf::Color(255, 255, 255));
-            graphPoint.setOrigin(pointSize, pointSize);
-
-            double th1Wrapped = wrap(-M_PI, M_PI, pendulum.th1);
-            double th2Wrapped = wrap(-M_PI, M_PI, pendulum.th2);
-
-            float x = mapAngleToScreen(th1Wrapped, graphWindow.getSize().x);
-            float y = mapAngleToScreen(-th2Wrapped, graphWindow.getSize().y); // invert Y
-
-            graphPoint.setPosition(x, y);
-
-            graphTrail.push_back(graphPoint);
-
-            // Limit the length of the graph
-            if (graphTrail.size() > 2500) {
+            double th1W = wrap(-M_PI, M_PI, pendulum.th1);
+            double th2W = wrap(-M_PI, M_PI, pendulum.th2);
+            sf::Vector2f graphPx = worldToPixel(Vector2(th1W, th2W), screenPixelSize, graphWorldSize);
+            graphTrail.push_back(graphPx);
+            if (graphTrail.size() > 2500)
                 graphTrail.erase(graphTrail.begin());
+
+            // Smooth fading polyline on graph
+            for (size_t i = 1; i < graphTrail.size(); ++i) {
+                sf::Vector2f delta = graphTrail[i] - graphTrail[i-1];
+                if (std::abs(delta.x) > screenPixelSize * 0.5f || std::abs(delta.y) > screenPixelSize * 0.5f)
+                    continue;
+
+                float alpha = static_cast<float>(i) / graphTrail.size() * 255.f;
+                sf::Color c(255, 255, 255, static_cast<sf::Uint8>(alpha));
+                sf::Vertex line[2] = { sf::Vertex(graphTrail[i-1], c), sf::Vertex(graphTrail[i], c) };
+                graphWindow.draw(line, 2, sf::Lines);
             }
 
-            for (sf::CircleShape point : graphTrail) {
-                // sf::Vector2f newPosition;
-                // newPosition.x = point.getPosition().x - graphTrail.back().getPosition().x + graphWindow.getSize().x / 2;
-                // newPosition.y = point.getPosition().y - graphTrail.back().getPosition().y + graphWindow.getSize().y / 2;
-                // point.setPosition(newPosition);
-                graphWindow.draw(point);
+            // Fading trail on pendulum tip
+            pendulumTrail.push_back(pendulum.secondDotPos);
+            if (pendulumTrail.size() > 300)
+                pendulumTrail.erase(pendulumTrail.begin());
+
+            for (size_t i = 1; i < pendulumTrail.size(); ++i) {
+                float t = static_cast<float>(i) / pendulumTrail.size();
+                sf::Color c(
+                    255,
+                    255,
+                    255,
+                    static_cast<sf::Uint8>(t * 255.f)
+                );
+                sf::Vertex line[2] = { sf::Vertex(pendulumTrail[i-1], c), sf::Vertex(pendulumTrail[i], c) };
+                simulationWindow.draw(line, 2, sf::Lines);
             }
+
             pendulum.UpdatePendulumRK4(G, dt);
             pendulum.DrawPendulum(simulationWindow);
-
+            simulationWindow.display();
+            graphWindow.display();
         }
 
         if (doGenerateMap) {
-            // Update map window
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+                sf::Vector2i mousePx = sf::Mouse::getPosition(mapWindow);
+                double th1 = viewCenter.x + ((double)mousePx.x / (screenPixelSize - 1) - 0.5) * viewSideLength;
+                double th2 = viewCenter.y + ((double)mousePx.y / (screenPixelSize - 1) - 0.5) * viewSideLength;
+                Vector2 worldPosition(th1, th2);
+                worldPosition.say();
+            }
+
             #pragma omp parallel for collapse(2)
             for (int x = 0; x < resolution; ++x) {
                 for (int y = 0; y < resolution; ++y) {
+                    pendulums[x][y].UpdatePendulumRK4(G, dt);
 
-                    pendulums.at(x).at(y).UpdatePendulumRK4(G, dt);
+                    float th1 = wrap(-M_PI, M_PI, pendulums[x][y].th1);
+                    float th2 = wrap(-M_PI, M_PI, pendulums[x][y].th2);
 
-                    float th1 = wrap(-M_PI, M_PI, pendulums.at(x).at(y).th1);
-                    float th2 = wrap(-M_PI, M_PI, pendulums.at(x).at(y).th2);
+                    // Map current (th1, th2) to source pixel in the color map
+                    sf::Vector2f srcPx = worldToPixel(Vector2(th1, th2), cmW, graphWorldSize);
+                    int srcX = std::clamp((int)srcPx.x, 0, (int)cmW - 1);
+                    int srcY = std::clamp((int)srcPx.y, 0, (int)cmH - 1);
 
-                    int srcX = (int)((th1 + M_PI) / (2 * M_PI) * (originalColorMapWidth  - 1));
-                    int srcY = (int)(((-th2) + M_PI) / (2 * M_PI) * (originalColorMapHeight - 1));
+                    int dstX = (int)((double)x / (resolution - 1) * (cmW - 1));
+                    int dstY = (int)((double)y / (resolution - 1) * (cmH - 1));
+                    
+                    sf::Color c = originalColorValues[srcY][srcX];
 
-                    int dstX = x * originalColorMapWidth  / resolution;
-                    int dstY = (resolution - 1 - y) * originalColorMapHeight / resolution;
-
-                    sf::Color c = originalColorValues.at(srcY).at(srcX);
-                    int fill = std::ceil(1000 / resolution);
+                    int fill = std::ceil(screenPixelSize / resolution);
                     for (int i = 0; i < fill; ++i) {
                         for (int j = 0; j < fill; ++j) {
-                            int px = dstX + i;
-                            int py = dstY + j;
-
-                            if (px >= 0 && py >= 0 &&
-                                px < (int)originalColorMapWidth &&
-                                py < (int)originalColorMapHeight)
-                            {
+                            int px = dstX + i, py = dstY + j;
+                            if (px >= 0 && py >= 0 && px < (int)cmW && py < (int)cmH) {
                                 currentColorValues[py][px] = c;
                                 currentColorMap.setPixel(px, py, c);
                             }
@@ -458,34 +409,16 @@ int main() {
             }
             texture.update(currentColorMap);
 
-            // std::ostringstream filenameStream;
-            // filenameStream << "frames/frame_" << std::setw(4) << std::setfill('0') << frameCount << ".png";
-            // std::string filename = filenameStream.str();
-
-            // currentColorMap.saveToFile(filename);
-        }
-
-        frameCount++;
-        fpsCounter++;
-        
-        if (!doGenerateMap) {
-            simulationWindow.display();
-            graphWindow.display();
-        }
-
-        if (doGenerateMap) {
+            fpsCounter++;
             mapWindow.draw(sprite);
             mapWindow.display();
-            
-            // FPS calculation
+
             float elapsed = clock.getElapsedTime().asSeconds();
             if (elapsed >= 1.0f) {
-                float fps = fpsCounter / elapsed; 
-                std::cout << "FPS: " << fps << std::endl;
-
+                std::cout << "FPS: " << fpsCounter / elapsed << std::endl;
                 fpsCounter = 0;
                 clock.restart();
             }
         }
     }
-}
+}   
